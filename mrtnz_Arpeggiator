@@ -20,7 +20,7 @@ local grid_step = 320 --размер для шага step
 local step = 3 --шаг для отклонения grid_step, каждая step нота будет иметь длину grid_step
 local octave = 0 --взрыв октав
 
-local step_mode = 1 --чекснизу
+local step_mode = 3 --чекснизу
 local velocity = 10
 --[[
 ===step modes===
@@ -30,6 +30,7 @@ local velocity = 10
 ]]
 local step_grid = {
   { -- Для первого аккорда
+    
     {step = 2, grid_step = 480, velocity = 50},
     {step = 3, grid_step = 240, velocity = 70},
     {step = 4, grid_step = 960, velocity = 110},
@@ -41,6 +42,7 @@ local step_grid = {
   },
   -- и так далее для каждого следующего аккорда
 }
+
 
 
 
@@ -384,6 +386,7 @@ local function sortChord(chord, direction)
     end
   end)
 end
+
 
 local function createArpeggio(direction, g_length, alternateStep, alternateLength)
   local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
