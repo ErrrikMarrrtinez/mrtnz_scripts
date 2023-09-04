@@ -1,0 +1,592 @@
+package.path = string.format('%s/Scripts/rtk/1/?.lua;%s?.lua;', reaper.GetResourcePath(), entrypath)
+require 'rtk'
+local resourcePath = reaper.GetResourcePath()
+package.path = package.path .. ";" .. resourcePath .. "/Scripts/?.lua"
+local json = require("json")
+reaper.GetSetProjectInfo_String(0, "PROJOFFS", "0", true)
+
+local wnd = rtk.Window{
+    w = 322,
+    h = 500,
+    title = 'arp',
+bg = "#1a1a1a"
+}
+
+
+
+local mode = "up" --направление
+--local grid = 320 --размер основных нот
+local grid_step = 320 --размер для шага step
+local step = 3 --шаг для отклонения grid_step, каждая step нота будет иметь длину grid_step
+local octave = 0 --взрыв октав
+
+local step_mode = 1 --чекснизу
+local velocity = 10
+--[[
+===step modes===
+     1 - когда используется только grid
+     2 - когда используется grid, step, grid_step
+     3 - когда исполььзуется grid, step, grid_step в множественном числе в виде таблицы или массива
+]]
+local step_grid = {
+  { -- Для первого аккорда
+    {step = 2, grid_step = 480, velocity = 50},
+    {step = 3, grid_step = 240, velocity = 70},
+    {step = 4, grid_step = 960, velocity = 110},
+  },
+  { -- Для второго аккорда
+    {step = 2, grid_step = 640, velocity = 40},
+    {step = 3, grid_step = 480, velocity = 60},
+    {step = 4, grid_step = 240, velocity = 100},
+  },
+  -- и так далее для каждого следующего аккорда
+}
+
+
+
+
+--[[
+===modes===
+- up
+- down
+- random
+]]
+
+--[[
+===grid sizes===
+
+- 1/1 - 3840
+- 1/2 - 1920
+- 1/3 - 1280
+- 1/4 - 960
+- 1/6 - 640
+- 1/8 - 480
+- 1/12 - 320
+- 1/16 - 240
+- 1/24 - 160
+- 1/32 - 120
+- 1/48 - 80
+- 1/64 - 60
+]]
+
+
+
+
+
+rtk.add_image_search_path('../../MrtnzScripts/NotePast/images', 'dark')
+local up = rtk.Image.icon('up'):scale(120,120,22,7) -- increase the size of the image
+local down = rtk.Image.icon('down'):scale(120,120,22,7) -- increase the size of the image
+local rand = rtk.Image.icon('rand'):scale(120,120,22,8) -- increase the size of the image
+local rnd = rtk.Image.icon('rnd'):scale(120,120,22,7) -- increase the size of the image
+local oct = rtk.Image.icon('oct'):scale(120,120,22,7) -- increase the size of the image
+local up_and_down = rtk.Image.icon('up-and-down'):scale(120,120,22,7) -- increase the size of the image
+
+local vbox = wnd:add(rtk.VBox{})
+hb_o = vbox:add(rtk.HBox{rborder=false,bborder=false,border='gray',y=60,x=10,spacing=5,padding=25})
+local button = hb_o:add(rtk.Button{spacing=5,padding=4,font=font,w=80,tagged=true,icon=oct,w=60,h=25,halign='center',label='0'})
+
+local slider_line = vbox:add(rtk.VBox{x=10,y=35,spacing=5,padding=25})
+
+
+local slider3 = slider_line:add(rtk.Slider{
+tracksize = 10,
+ticksize = 1,
+thumbcolor='#443433',
+thumbsize=8,
+trackcolor = '#b7b7b7',
+color = '#443433',
+step = 1, 
+min = 1,
+max = 11,
+w=250,
+ticks = true,
+
+})
+local function blurSlider()
+  slider3:blur()
+end
+
+slider3.onmouseup = blurSlider
+slider3.onmousedown = blurSlider
+slider3.onmouseleave = blurSlider
+
+
+local font="Trebuchet MS"
+local vert_b = vbox:add(rtk.HBox{border="#5a5a5a",tborder=false,x=10,y=10,spacing=5,padding=25})
+local b_up = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=up,halign='center',w=80,'UP'})
+local b_down = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=down,halign='center',w=80,'DOWN'})
+
+local b_rand = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=rand,halign='center',w=80,'RANDOM'})
+
+b_rand.onmousedown = function()
+  b_rand:attr("icon", rnd)
+end
+
+
+b_rand.onmouseup = function()
+  b_rand:attr("icon", rand)
+end
+
+local gr = 2
+local pressed = "#443433"
+
+function reset_button()
+    b_up:attr("color", "#3a3a3a")
+    b_down:attr("color","#3a3a3a")
+    b_rand:attr("color","#3a3a3a")
+    b_up:attr("gradient", gr)
+    b_down:attr("gradient",gr)
+    b_rand:attr("gradient",gr)
+    b_rand:attr("hover",false)
+    b_up:attr("hover",false)
+    b_down:attr("hover",false)
+end
+reset_button()
+
+b_up.onclick=function()
+    reset_button()
+    b_up:attr("gradient", 3)
+    b_up:attr("color",pressed)
+    b_up:attr("hover",true)
+    mode = "up"
+    run()
+end
+
+b_down.onclick=function()
+    reset_button()
+    b_down:attr("color",pressed)
+    b_down:attr("gradient", 3)
+    b_down:attr("hover",true)
+    mode = "down"
+    run()
+end
+
+b_rand.onclick=function()
+    reset_button()
+    b_rand:attr("color",pressed)
+    b_rand:attr("gradient", 3)
+    b_rand:attr("hover",true)
+    mode = "random"
+    run()
+end
+
+
+local dragging = false
+local currentValue = 1
+local prevX, prevY = nil, nil
+
+button.ondragstart = function(self, event, x, y, t)
+    dragging = true
+    prevX, prevY = x, y
+      button:attr("cursor", rtk.mouse.cursors.REAPER_MARKER_VERT)
+    return true
+end
+
+button.onmouseenter = function()
+  button:attr("cursor", rtk.mouse.cursors.BEAM)
+  button:attr("icon", up_and_down)
+end
+button.onmouseleave = function()
+    button:attr("icon", oct)
+end
+button.ondragend = function(self, event, dragarg)
+    dragging = false
+    prevX, prevY = nil, nil
+    button:attr("cursor", rtk.mouse.cursors.UNDEFINED)
+    
+    -- передача значения
+    octave = currentValue
+    run()
+end
+button.onmousewheel = function(self, event)
+    local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+    wheel_y = tonumber(wheel_y)
+
+    if wheel_y > 0 then
+        currentValue = currentValue - 1
+    else
+        currentValue = currentValue + 1
+    end
+
+    currentValue = math.max(0, math.min(6, currentValue))
+
+    button:attr('label', tostring(currentValue))
+
+    -- Здесь передаем значение в octave и запускаем функцию run
+    octave = currentValue
+    run()
+    return true
+end
+local dragAccumulatorX = 0
+local dragAccumulatorY = 0
+local dragThreshold = 25 -- порог для изменения значения
+button.ondragmousemove = function(self, event, dragarg)
+    if dragging and prevX and prevY then
+            local deltaX = event.x - prevX
+            local deltaY = event.y - prevY
+            
+            dragAccumulatorX = dragAccumulatorX + deltaX
+            dragAccumulatorY = dragAccumulatorY + deltaY
+    
+            if math.abs(dragAccumulatorX) > dragThreshold or math.abs(dragAccumulatorY) > dragThreshold then
+            if math.abs(deltaX) > math.abs(deltaY) then
+
+            else
+                -- Вертикальное движение
+                if deltaY > 0 then
+                    currentValue = currentValue - 1
+                    button:attr("icon", down)
+                elseif deltaY < 0 then
+                    currentValue = currentValue + 1
+                    button:attr("icon", up)
+                end
+                dragAccumulatorX = 5
+                dragAccumulatorY = 5
+            end
+
+            -- Ограничение значения от 1 до 11
+            currentValue = math.max(0, math.min(6, currentValue))
+
+            button:attr('label', tostring(currentValue))
+            prevX, prevY = event.x, event.y
+        end
+    end
+end
+
+
+local grid_values = {1920, 1280, 960, 640, 480, 320, 240, 160, 120, 80, 60}
+
+
+
+
+local resourcePath = reaper.GetResourcePath()
+package.path = package.path .. ";" .. resourcePath .. "/Scripts/?.lua"
+local json = require("json")
+reaper.GetSetProjectInfo_String(0, "PROJOFFS", "0", true)
+--------------надо добавить инвертировние
+
+slider3._previous_value = slider3.value
+
+slider3.onchange = function(self)
+    if self.value == slider3._previous_value then return end
+    local step = self.value - self.min + 1
+    grid = grid_values[step]
+    run()
+    slider3._previous_value = self.value
+end
+
+
+
+local function save_notes_to_json(filename)
+  local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
+  local pattern = {notes = {}}
+  local _, numNotes, _, _ = reaper.MIDI_CountEvts(take)
+  for i = 0, numNotes - 1 do
+    local _, selected, _, startppqpos, endppqpos, _, pitch, velocity = reaper.MIDI_GetNote(take, i)
+    if selected then
+      local position = startppqpos
+      local length = endppqpos - position
+      table.insert(pattern.notes, {position = position, length = length, velocity = velocity, pitch = pitch})
+    end
+  end
+  local jsonString = json.encode(pattern)
+  local filePath = resourcePath .. "/Scripts/MrtnzScripts/ArpData/" .. filename
+  local file = io.open(filePath, "w")
+  if file then
+    file:write(jsonString)
+    file:close()
+    --reaper.ShowMessageBox("Note data has been successfully saved to " .. filename, "Saving", 0)
+  else
+    reaper.ShowMessageBox("Error opening file.", "Error", 0)
+  end
+end
+local function load_notes(filename)
+  local filePath = resourcePath .. "/Scripts/MrtnzScripts/ArpData/" .. filename
+  local file_read = io.open(filePath, "r")
+  if file_read then
+    local content = file_read:read("*all")
+    file_read:close()
+    return json.decode(content)
+  else
+    reaper.ShowMessageBox("Error opening file.", "Error", 0)
+    return nil
+  end
+end
+
+local function compare_patterns(pattern1, pattern2)
+  if #pattern1.notes ~= #pattern2.notes then return false end
+  for i, note1 in ipairs(pattern1.notes) do
+    local note2 = pattern2.notes[i]
+    if note1.position ~= note2.position or note1.length ~= note2.length or note1.velocity ~= note2.velocity or note1.pitch ~= note2.pitch then
+      return false
+    end
+  end
+  return true
+end
+
+
+local function delete_selected_notes(take)
+  local _, numNotes, _, _ = reaper.MIDI_CountEvts(take)
+  local selected_notes = {}
+  
+  -- Сначала получаем все выделенные ноты
+  for i = 0, numNotes - 1 do
+    local _, selected, _, _, _, _, _, _ = reaper.MIDI_GetNote(take, i)
+    if selected then
+      table.insert(selected_notes, i)
+    end
+  end
+  
+  -- Затем удаляем только выделенные ноты
+  for i = #selected_notes, 1, -1 do
+    reaper.MIDI_DeleteNote(take, selected_notes[i])
+  end
+end
+
+--------------------------------------
+
+function adjustNoteLengths()
+    local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
+    if not take then return end  -- Выход, если активный редактор MIDI не найден
+    
+    local _, noteCount, _, _ = reaper.MIDI_CountEvts(take)
+    local hasSelectedNotes = false
+    
+    for i = 0, noteCount - 1 do
+        local retval, selected, _, _, _, _, _, _ = reaper.MIDI_GetNote(take, i)
+        if selected then
+            hasSelectedNotes = true
+            break
+        end
+    end
+    local ik=10.1
+    for i = 0, noteCount - 1 do
+        local retval, selected, muted, startppqpos, endppqpos, chan, pitch, vel = reaper.MIDI_GetNote(take, i)
+        if hasSelectedNotes then
+            if selected then
+                reaper.MIDI_SetNote(take, i, nil, nil, nil, endppqpos - ik, nil, nil, nil, false)
+            end
+        else
+            reaper.MIDI_SetNote(take, i, nil, nil, nil, endppqpos - ik, nil, nil, nil, false)
+        end
+    end
+    
+    reaper.MIDI_Sort(take)
+end
+
+
+local function sortChord(chord, direction)
+  table.sort(chord, function(a, b)
+    if direction == "up" then
+      return a.pitch < b.pitch
+    else
+      return a.pitch > b.pitch
+    end
+  end)
+end
+
+local function createArpeggio(direction, g_length, alternateStep, alternateLength)
+  local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
+  if not take then return end
+  local chord_gap_threshold = -1
+  reaper.MIDI_Sort(take)
+  adjustNoteLengths()
+  local _, noteCount = reaper.MIDI_CountEvts(take)
+  local chords = {}
+  local chord = {}
+  local lastEnd = 0
+  -- 1) Gathering notes into chords
+  local hasSelectedNotes = false
+  for i = 0, noteCount - 1 do
+    local retval, selected, _, _, _, _, _, _ = reaper.MIDI_GetNote(take, i)
+    if selected then
+      hasSelectedNotes = true
+      break
+    end
+  end
+
+  for i = 0, noteCount - 1 do
+    local retval, selected, _, startpos, endpos, _, pitch, velocity = reaper.MIDI_GetNote(take, i)
+    
+    local noteLength = endpos - startpos
+    if (not hasSelectedNotes or selected) and noteLength > 120 then
+          if #chord > 0 and startpos - chord[#chord].endpos > 10 then -- You can change this threshold
+            if #chord > 1 then
+              sortChord(chord, direction)
+              table.insert(chords, chord)
+            else
+              table.insert(chords, {{startpos = chord[1].startpos, endpos = chord[1].endpos, pitch = chord[1].pitch}})
+            end
+            chord = {}
+          end
+          table.insert(chord, {startpos = startpos, endpos = endpos, pitch = pitch, velocity = velocity})
+          
+        end
+      end
+      if #chord == 1 then
+        table.insert(chords, {{startpos = chord[1].startpos, endpos = chord[1].endpos, pitch = chord[1].pitch}})
+      elseif #chord > 1 then
+        sortChord(chord, direction)
+        table.insert(chords, chord)
+      end
+
+  -- 2) Delete all notes
+  for i = noteCount - 1, 0, -1 do
+    local _, selected, _, startpos, endpos, _, _, _ = reaper.MIDI_GetNote(take, i)
+    local noteLength = endpos - startpos
+    if (not hasSelectedNotes or selected) and noteLength > 120 then
+      reaper.MIDI_DeleteNote(take, i)
+    end
+  end
+
+  -- 3) Insert arpeggios for each chord
+  for chord_index, chord in ipairs(chords) do
+    local insert_position = chord[1].startpos
+    local end_position = chord[#chord].endpos
+  
+    if #chord == 1 then -- Если есть только одна нота
+      while insert_position < end_position do
+        local note_length = g_length
+        if insert_position + note_length > end_position then
+          note_length = end_position - insert_position
+        end
+  
+        reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, chord[1].pitch, 100, false)
+        insert_position = insert_position + note_length
+      end
+    else
+      local note = 1
+      local last_note = nil
+      local count = 0
+      local current_step_grid = step_grid[chord_index] or step_grid[1]
+          
+local main_count = 0 -- Основной счетчик для while цикла
+  local step_counts = {}
+  for i = 1, #current_step_grid do
+    step_counts[i] = 0
+  end
+
+
+while insert_position < end_position do
+  local note_length = g_length
+  local current_velocity = velocity -- Будем использовать эту переменную вместо оригинальной
+  
+  main_count = main_count + 1  -- Увеличиваем основной счетчик
+  
+  if step_mode == 2 and alternateStep and alternateLength then
+    if main_count % alternateStep == 0 then
+      note_length = alternateLength
+    end
+  elseif step_mode == 3 then
+    local matched = false
+    if current_step_grid then
+      for i = #current_step_grid, 1, -1 do  -- Обратный порядок перебора
+        step_counts[i] = step_counts[i] + 1  -- Увеличиваем счетчик для текущего step
+        local v = current_step_grid[i]
+        
+        if step_counts[i] % v.step == 0 then
+          note_length = v.grid_step
+          if v.velocity then
+            current_velocity = v.velocity
+          end
+          matched = true
+          break
+        end
+      end
+    end
+    if not matched then
+      current_velocity = velocity
+    end
+  else
+    current_velocity = chord[note].velocity
+  end
+  
+        if mode == "random" then
+          repeat
+            note = math.random(#chord)
+          until note ~= last_note or #chord == 1
+        end
+
+  
+        last_note = note
+  
+        if insert_position + note_length > end_position then
+          note_length = end_position - insert_position
+        end
+  
+        -- Взрыв октавы
+        local pitch = chord[note].pitch
+        if octave ~= 0 then
+          local randomOctaveShift = math.random(-octave, octave) * 12
+          pitch = pitch + randomOctaveShift -- Смещение на случайное количество октав вверх или вниз, сохраняя тон
+        end
+  
+        
+        --local velocity = chord[note].velocity -- получение сохраненного значения velocity
+        reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, pitch, current_velocity, false) 
+        --reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, pitch, velocity, false) -- использование значения velocity
+        insert_position = insert_position + note_length
+  
+        if mode ~= "random" then
+          note = (note % #chord) + 1
+        end
+      end
+    end
+  end
+  
+  
+    save_notes_to_json("modify.json")
+    
+end
+
+--[[
+reaper.Undo_BeginBlock()
+
+reaper.Undo_EndBlock("Create Arpeggio from Chords", -1)]]
+
+
+  
+
+
+
+
+
+
+function run()
+  
+  local selected_pattern = {notes = {}}
+  local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
+  local _, numNotes, _, _ = reaper.MIDI_CountEvts(take)
+  for i = 0, numNotes - 1 do
+    local _, selected, _, startppqpos, endppqpos, _, pitch, velocity = reaper.MIDI_GetNote(take, i)
+    if selected then
+      local position = startppqpos
+      local length = endppqpos - position
+      table.insert(selected_pattern.notes, {position = position, length = length, velocity = velocity, pitch = pitch})
+    end
+  end
+  
+  
+  local modify_pattern = load_notes("modify.json")
+  
+  
+  
+  if compare_patterns(selected_pattern, modify_pattern) then
+    local original_pattern = load_notes("original.json")
+    -- Удаляем текущие выделенные ноты
+    delete_selected_notes(take)
+    -- Вставляем ноты из original.json
+    for i, note in ipairs(original_pattern.notes) do
+      reaper.MIDI_InsertNote(take, true, false, note.position, note.position + note.length, 0, note.pitch, note.velocity, false)
+    end
+    createArpeggio(mode, grid, step, grid_step)
+  else
+    save_notes_to_json("original.json")
+    createArpeggio(mode, grid, step, grid_step)
+  end
+
+
+end
+
+
+wnd:open()
