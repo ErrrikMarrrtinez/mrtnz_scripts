@@ -14,7 +14,7 @@ bg = "#1a1a1a"
 
 --local grid = 320 --размер основных нот
 
-local mode = "up" --направление
+local mode = "down" --направление
 local grid_step = 320 --размер для шага step
 local step = 3 --шаг для отклонения grid_step, каждая step нота будет иметь длину grid_step
 local octave = 0 --взрыв октав
@@ -30,6 +30,7 @@ local step_grid = {
   { -- Для первого аккорда
     mode = "up",
 
+      {step = 1, grid_step = 480, velocity = 20},
       {step = 2, grid_step = 480, velocity = 50},
       {step = 3, grid_step = 240, velocity = 70},
       {step = 4, grid_step = 960, velocity = 110},
@@ -38,6 +39,7 @@ local step_grid = {
   { -- Для первого аккорда
     mode = "down",
 
+      {step = 1, grid_step = 480, velocity = 2},
       {step = 2, grid_step = 480, velocity = 2},
       {step = 3, grid_step = 480, velocity = 2},
       {step = 4, grid_step = 480, velocity = 2},
@@ -46,13 +48,13 @@ local step_grid = {
   { -- Для первого аккорда
     mode = "random",
 
+      {step = 1, grid_step = 240, velocity = 127},
       {step = 2, grid_step = 240, velocity = 127},
       {step = 3, grid_step = 240, velocity = 127},
       {step = 4, grid_step = 240, velocity = 127},
 
   },
 }
-
 
 
 
@@ -475,6 +477,8 @@ local function createArpeggio(direction, g_length, alternateStep, alternateLengt
   else
     current_mode = mode
   end
+  
+  
     
     if #chord == 1 then -- Если есть только одна нота
       while insert_position < end_position do
@@ -513,8 +517,8 @@ while insert_position < end_position do
   elseif step_mode == 3 then
     local matched = false
     if current_step_grid then
-      for i = #current_step_grid, 1, -1 do  -- Обратный порядок перебора
-        step_counts[i] = step_counts[i] + 1  -- Увеличиваем счетчик для текущего step
+      for i = #current_step_grid, 1, -1 do
+        step_counts[i] = step_counts[i] + 1
         local v = current_step_grid[i]
         
         if step_counts[i] % v.step == 0 then
@@ -527,7 +531,8 @@ while insert_position < end_position do
         end
       end
     end
-    if not matched then
+    
+    if not matched and step_mode ~= 3 then
       current_velocity = velocity
     end
   else
