@@ -89,6 +89,9 @@ local rand = rtk.Image.icon('rand'):scale(120,120,22,8) -- increase the size of 
 local rnd = rtk.Image.icon('rnd'):scale(120,120,22,7) -- increase the size of the image
 local oct = rtk.Image.icon('oct'):scale(120,120,22,7) -- increase the size of the image
 local leg = rtk.Image.icon('leg'):scale(120,120,22,7) -- increase the size of the image
+local save = rtk.Image.icon('save'):scale(120,120,22,7) -- increase the size of the image
+local delete = rtk.Image.icon('trash'):scale(120,120,22,7) -- increase the size of the image
+local page = rtk.Image.icon('page'):scale(120,120,22,7) -- increase the size of the image
 
 local on = rtk.Image.icon('on'):scale(120,120,22,6) -- increase the size of the image
 local off = rtk.Image.icon('off'):scale(120,120,22,6) -- increase the size of the image
@@ -98,23 +101,23 @@ local onm = rtk.Image.icon('onm'):scale(120,120,22,7) -- increase the size of th
 
 local up_and_down = rtk.Image.icon('up-and-down'):scale(120,120,22,7) -- increase the size of the image
 font="Trebuchet MS"
-local container = wnd:add(rtk.VBox{})
+local container = wnd:add(rtk.VBox{y=-35})
 
 local vbox2 = container:add(rtk.VBox{y=50,padding=5,x=wnd.w/2-50})
 
 local vbox = container:add(rtk.VBox{})
 
 hb_o = vbox:add(rtk.HBox{rborder=false,bborder=false,border='gray',y=60,x=10,spacing=5,padding=25})
-color_b_hb = "#2a2a2a"
-local button = hb_o:add(rtk.Button{color=color_b_hb,gradient=3,spacing=5,padding=4,font=font,tagged=true,icon=oct,w=70,h=25,halign='center',label='0'})
-local button_str = hb_o:add(rtk.Button{color=color_b_hb,gradient=3,spacing=4,padding=2,font=font,tagged=true,icon=leg,w=70,h=25,halign='center',label='LEGATO'})
+color_b_hb = "#3a3a3a"
+local button = hb_o:add(rtk.Button{color=color_b_hb,gradient=3,spacing=5,padding=4,font=font,tagged=true,icon=oct,w=80,h=25,halign='center',label='0'})
+local button_str = hb_o:add(rtk.Button{color=color_b_hb,gradient=3,spacing=4,padding=2,font=font,tagged=true,icon=leg,w=80,h=25,halign='center',label='LEGATO'})
 
 button_str.state = "on"
 button_str.onclick = function(self, event)
     if self.state == "on" then
         self.state = "off"
-        self:attr('color', "#443433")
-        self:attr('gradient', 5)
+        self:attr('color', "#7a590d")
+        self:attr('gradient', 2)
     else
         self.state = "on"
         self:attr('color', color_b_hb)
@@ -173,13 +176,17 @@ button2.onmouseenter = function(self, event)
 end
 
 local v_chords_box = container:add(rtk.VBox{rborder=false,bborder=false,border='gray',y=20,x=10,spacing=5,padding=25})
-local chord_str = v_chords_box:add(rtk.HBox{padding=5,spacing=5}) --линия тулбара
-b_create_chord = chord_str:add(rtk.Button{padding=2,spacing=25,"Create pool"})
-b_save_chord = chord_str:add(rtk.Button{padding=2,spacing=25,"Save pool"})
-b_delete_chord = chord_str:add(rtk.Button{padding=2,spacing=25,"Delete pool"})
+local chord_str = v_chords_box:add(rtk.HBox{spacing=5}) --линия тулбара
 
-local chord_b_box = v_chords_box:add(rtk.HBox{padding=5,spacing=1}) --линия кнопок
-local button_chords = chord_b_box:add(rtk.Button{"chord1"}) --кнопка
+
+b_create_chord = chord_str:add(rtk.Button{font=font,halign='center',w=80,tagged=true,icon=page,padding=3,spacing=5,"Create"})
+b_save_chord = chord_str:add(rtk.Button{font=font,halign='center',w=80,tagged=true,icon=save,padding=3,spacing=5,"Save"})
+b_delete_chord = chord_str:add(rtk.Button{font=font,halign='center',w=80,tagged=true,icon=delete,padding=3,spacing=5,"Delete"})
+
+
+
+local chord_b_box = v_chords_box:add(rtk.HBox{border="#5a5a5a",rborder=false,bborder=false,x=10,y=10,spacing=5,padding=25}) --линия кнопок
+local button_chords = chord_b_box:add(rtk.Button{w=200,"Chord 1"}) --кнопка
 
 
 
@@ -212,7 +219,7 @@ end
 slider3.onmousedown = function(self,event)
     blurSlider()
     slider3:attr("thumbcolor","#362a29")
-    slider3:attr("cursor", rtk.mouse.cursors.REAPER_HAND_SCROLL)
+    slider3:attr("cursor", rtk.mouse.cursors.HAND)
 end
 slider3.onmouseleave = function(self, event)
   blurSlider()
