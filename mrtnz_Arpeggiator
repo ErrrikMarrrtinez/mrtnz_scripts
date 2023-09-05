@@ -28,32 +28,24 @@ local velocity = 101
 ]]
 local step_grid = {
   { -- Для первого аккорда
-    mode = "up",
-
-      {step = 1, grid_step = 480, velocity = 20, octave = 2},
-      {step = 2, grid_step = 480, velocity = 50, octave = 1},
-      {step = 3, grid_step = 240, velocity = 70, octave = -1},
-      {step = 4, grid_step = 960, velocity = 110, octave = 0},
-
-  },
-  { -- Для первого аккорда
     mode = "down",
 
-      {step = 1, grid_step = 480, velocity = 25, octave = 0},
-      {step = 2, grid_step = 480, velocity = 35, octave = 0},
-      {step = 3, grid_step = 480, velocity = 45, octave = 0},
-      {step = 4, grid_step = 480, velocity = 65, octave = 0},
+      {step = 1, grid_step = 480, velocity = 20, octave = -2},
+      {step = 2, grid_step = 480, velocity = 50, octave = -1},
+      {step = 3, grid_step = 240, velocity = 70, octave = 0},
+      {step = 4, grid_step = 960, velocity = 110, octave = 1},
 
   },
-  { -- Для первого аккорда
+  { -- Для второго аккорда
     mode = "random",
 
-      {step = 1, grid_step = 240, velocity = 127, octave = -1},
-      {step = 2, grid_step = 240, velocity = 127, octave = -1},
-      {step = 3, grid_step = 240, velocity = 127, octave = -1},
-      {step = 4, grid_step = 240, velocity = 127, octave = -1},
+      {step = 1, grid_step = 960, velocity = 25, octave = 0},
+      {step = 2, grid_step = 240, velocity = 35, octave = 1},
+      {step = 3, grid_step = 480, velocity = 45, octave = -1},
+      {step = 4, grid_step = 240, velocity = 65, octave = 0},
 
   },
+
 }
 
 
@@ -96,6 +88,7 @@ local down = rtk.Image.icon('down'):scale(120,120,22,7) -- increase the size of 
 local rand = rtk.Image.icon('rand'):scale(120,120,22,8) -- increase the size of the image
 local rnd = rtk.Image.icon('rnd'):scale(120,120,22,7) -- increase the size of the image
 local oct = rtk.Image.icon('oct'):scale(120,120,22,7) -- increase the size of the image
+local leg = rtk.Image.icon('leg'):scale(120,120,22,7) -- increase the size of the image
 
 local on = rtk.Image.icon('on'):scale(120,120,22,6) -- increase the size of the image
 local off = rtk.Image.icon('off'):scale(120,120,22,6) -- increase the size of the image
@@ -112,7 +105,26 @@ local vbox2 = container:add(rtk.VBox{y=50,padding=5,x=wnd.w/2-50})
 local vbox = container:add(rtk.VBox{})
 
 hb_o = vbox:add(rtk.HBox{rborder=false,bborder=false,border='gray',y=60,x=10,spacing=5,padding=25})
-local button = hb_o:add(rtk.Button{color="#2a2a2a",gradient=3,spacing=5,padding=4,font=font,tagged=true,icon=oct,w=60,h=25,halign='center',label='0'})
+color_b_hb = "#2a2a2a"
+local button = hb_o:add(rtk.Button{color=color_b_hb,gradient=3,spacing=5,padding=4,font=font,tagged=true,icon=oct,w=70,h=25,halign='center',label='0'})
+local button_str = hb_o:add(rtk.Button{color=color_b_hb,gradient=3,spacing=4,padding=2,font=font,tagged=true,icon=leg,w=70,h=25,halign='center',label='LEGATO'})
+
+button_str.state = "on"
+button_str.onclick = function(self, event)
+    if self.state == "on" then
+        self.state = "off"
+        self:attr('color', "#443433")
+        self:attr('gradient', 5)
+    else
+        self.state = "on"
+        self:attr('color', color_b_hb)
+        self:attr('gradient', 3)
+    end
+end
+
+button_str.onmouseenter = function(self, event)
+    self:attr("cursor", rtk.mouse.cursors.HAND)
+end
 button2_c="#451912"
 local button2 = vbox2:add(rtk.Button{gradient=3,y=-2,color=button2_c,spacing=2,padding=4,font="Trebuchet MS",tagged=true,icon=on,h=29,halign='center',label='Auto Apply'})
 local func_on = true
@@ -193,15 +205,22 @@ local function blurSlider()
 end
 
 slider3.onmouseup = function()
-blurSlider()
-slider3:attr("thumbcolor", "#443433" )
+  blurSlider()
+  slider3:attr("thumbcolor", "#443433" )
+  slider3:attr("cursor", rtk.mouse.cursors.HAND)
 end
-slider3.onmousedown = function()
-blurSlider()
-slider3:attr("thumbcolor","#362a29")
+slider3.onmousedown = function(self,event)
+    blurSlider()
+    slider3:attr("thumbcolor","#362a29")
+    slider3:attr("cursor", rtk.mouse.cursors.REAPER_HAND_SCROLL)
 end
-slider3.onmouseleave = blurSlider
+slider3.onmouseleave = function(self, event)
+  blurSlider()
+end
 
+slider3.onmouseenter = function(self, event)
+  slider3:attr("cursor", rtk.mouse.cursors.HAND)
+end
 
 local font="Trebuchet MS"
 local vert_b = vbox:add(rtk.HBox{border="#5a5a5a",tborder=false,x=10,y=10,spacing=5,padding=25})
