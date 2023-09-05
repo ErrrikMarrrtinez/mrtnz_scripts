@@ -18,8 +18,8 @@ local mode = "up" --направление
 local grid_step = 320 --размер для шага step
 local step = 3 --шаг для отклонения grid_step, каждая step нота будет иметь длину grid_step
 local octave = 0 --взрыв октав
-local step_mode = 3 --чекснизу
-local velocity = 10
+local step_mode = 1 --чекснизу
+local velocity = 101
 --[[
 ===step modes===
      1 - когда используется только grid
@@ -28,18 +28,32 @@ local velocity = 10
 ]]
 local step_grid = {
   { -- Для первого аккорда
-    
-    {step = 2, grid_step = 480, velocity = 50},
-    {step = 3, grid_step = 240, velocity = 70},
-    {step = 4, grid_step = 960, velocity = 110},
+    mode = "up",
+
+      {step = 2, grid_step = 480, velocity = 50},
+      {step = 3, grid_step = 240, velocity = 70},
+      {step = 4, grid_step = 960, velocity = 110},
+
   },
-  { -- Для второго аккорда
-    {step = 2, grid_step = 240, velocity = 10},
-    {step = 3, grid_step = 240, velocity = 10},
-    {step = 4, grid_step = 240, velocity = 10},
+  { -- Для первого аккорда
+    mode = "down",
+
+      {step = 2, grid_step = 480, velocity = 2},
+      {step = 3, grid_step = 480, velocity = 2},
+      {step = 4, grid_step = 480, velocity = 2},
+
   },
-  -- и так далее для каждого следующего аккорда
+  { -- Для первого аккорда
+    mode = "random",
+
+      {step = 2, grid_step = 240, velocity = 127},
+      {step = 3, grid_step = 240, velocity = 127},
+      {step = 4, grid_step = 240, velocity = 127},
+
+  },
 }
+
+
 
 
 
@@ -382,15 +396,16 @@ function adjustNoteLengths()
 end
 
 
-local function sortChord(chord, direction)
+local function sortChord(chord, current_mode)
   table.sort(chord, function(a, b)
-    if direction == "up" then
+    if current_mode == "up" then
       return a.pitch < b.pitch
     else
       return a.pitch > b.pitch
     end
   end)
 end
+
 
 
 local function createArpeggio(direction, g_length, alternateStep, alternateLength)
@@ -420,7 +435,7 @@ local function createArpeggio(direction, g_length, alternateStep, alternateLengt
     if (not hasSelectedNotes or selected) and noteLength > 120 then
           if #chord > 0 and startpos - chord[#chord].endpos > 10 then -- You can change this threshold
             if #chord > 1 then
-              sortChord(chord, direction)
+              sortChord(chord, current_mode)
               table.insert(chords, chord)
             else
               table.insert(chords, {{startpos = chord[1].startpos, endpos = chord[1].endpos, pitch = chord[1].pitch}})
@@ -434,7 +449,7 @@ local function createArpeggio(direction, g_length, alternateStep, alternateLengt
       if #chord == 1 then
         table.insert(chords, {{startpos = chord[1].startpos, endpos = chord[1].endpos, pitch = chord[1].pitch}})
       elseif #chord > 1 then
-        sortChord(chord, direction)
+        sortChord(chord, current_mode)
         table.insert(chords, chord)
       end
 
@@ -451,7 +466,16 @@ local function createArpeggio(direction, g_length, alternateStep, alternateLengt
   for chord_index, chord in ipairs(chords) do
     local insert_position = chord[1].startpos
     local end_position = chord[#chord].endpos
+    
+  local current_step_grid = step_grid[(chord_index - 1) % #step_grid + 1]
+  local current_mode
   
+  if step_mode == 3 then
+    current_mode = current_step_grid.mode or mode
+  else
+    current_mode = mode
+  end
+    
     if #chord == 1 then -- Если есть только одна нота
       while insert_position < end_position do
         local note_length = g_length
@@ -465,9 +489,7 @@ local function createArpeggio(direction, g_length, alternateStep, alternateLengt
     else
       local note = 1
       local last_note = nil
-      local count = 0
-      --local current_step_grid = step_grid[chord_index] or step_grid[1]
-      --local current_step_grid = step_grid[chord_index % #step_grid + 1]
+
       local current_step_grid = step_grid[(chord_index - 1) % #step_grid + 1]
       
           
@@ -511,8 +533,8 @@ while insert_position < end_position do
   else
     current_velocity = chord[note].velocity
   end
-  
-        if mode == "random" then
+  sortChord(chord, current_mode)
+        if current_mode == "random" then
           repeat
             note = math.random(#chord)
           until note ~= last_note or #chord == 1
@@ -531,21 +553,16 @@ while insert_position < end_position do
           local randomOctaveShift = math.random(-octave, octave) * 12
           pitch = pitch + randomOctaveShift -- Смещение на случайное количество октав вверх или вниз, сохраняя тон
         end
-  
-        
-        --local velocity = chord[note].velocity -- получение сохраненного значения velocity
         reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, pitch, current_velocity, false) 
-        --reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, pitch, velocity, false) -- использование значения velocity
         insert_position = insert_position + note_length
   
-        if mode ~= "random" then
+        if current_mode ~= "random" then
           note = (note % #chord) + 1
         end
       end
     end
   end
-  
-  
+
     save_notes_to_json("modify.json")
     
 end
