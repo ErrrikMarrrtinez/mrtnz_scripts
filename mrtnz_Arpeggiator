@@ -30,31 +30,32 @@ local step_grid = {
   { -- Для первого аккорда
     mode = "up",
 
-      {step = 1, grid_step = 480, velocity = 20},
-      {step = 2, grid_step = 480, velocity = 50},
-      {step = 3, grid_step = 240, velocity = 70},
-      {step = 4, grid_step = 960, velocity = 110},
+      {step = 1, grid_step = 480, velocity = 20, octave = 2},
+      {step = 2, grid_step = 480, velocity = 50, octave = 1},
+      {step = 3, grid_step = 240, velocity = 70, octave = -1},
+      {step = 4, grid_step = 960, velocity = 110, octave = 0},
 
   },
   { -- Для первого аккорда
     mode = "down",
 
-      {step = 1, grid_step = 480, velocity = 2},
-      {step = 2, grid_step = 480, velocity = 2},
-      {step = 3, grid_step = 480, velocity = 2},
-      {step = 4, grid_step = 480, velocity = 2},
+      {step = 1, grid_step = 480, velocity = 25, octave = 0},
+      {step = 2, grid_step = 480, velocity = 35, octave = 0},
+      {step = 3, grid_step = 480, velocity = 45, octave = 0},
+      {step = 4, grid_step = 480, velocity = 65, octave = 0},
 
   },
   { -- Для первого аккорда
     mode = "random",
 
-      {step = 1, grid_step = 240, velocity = 127},
-      {step = 2, grid_step = 240, velocity = 127},
-      {step = 3, grid_step = 240, velocity = 127},
-      {step = 4, grid_step = 240, velocity = 127},
+      {step = 1, grid_step = 240, velocity = 127, octave = -1},
+      {step = 2, grid_step = 240, velocity = 127, octave = -1},
+      {step = 3, grid_step = 240, velocity = 127, octave = -1},
+      {step = 4, grid_step = 240, velocity = 127, octave = -1},
 
   },
 }
+
 
 
 
@@ -95,15 +96,83 @@ local down = rtk.Image.icon('down'):scale(120,120,22,7) -- increase the size of 
 local rand = rtk.Image.icon('rand'):scale(120,120,22,8) -- increase the size of the image
 local rnd = rtk.Image.icon('rnd'):scale(120,120,22,7) -- increase the size of the image
 local oct = rtk.Image.icon('oct'):scale(120,120,22,7) -- increase the size of the image
-local up_and_down = rtk.Image.icon('up-and-down'):scale(120,120,22,7) -- increase the size of the image
 
-local vbox = wnd:add(rtk.VBox{})
+local on = rtk.Image.icon('on'):scale(120,120,22,6) -- increase the size of the image
+local off = rtk.Image.icon('off'):scale(120,120,22,6) -- increase the size of the image
+local onof = rtk.Image.icon('onof'):scale(120,120,22,6) -- increase the size of the image
+
+local onm = rtk.Image.icon('onm'):scale(120,120,22,7) -- increase the size of the image
+
+local up_and_down = rtk.Image.icon('up-and-down'):scale(120,120,22,7) -- increase the size of the image
+font="Trebuchet MS"
+local container = wnd:add(rtk.VBox{})
+
+local vbox2 = container:add(rtk.VBox{y=50,padding=5,x=wnd.w/2-50})
+
+local vbox = container:add(rtk.VBox{})
+
 hb_o = vbox:add(rtk.HBox{rborder=false,bborder=false,border='gray',y=60,x=10,spacing=5,padding=25})
-local button = hb_o:add(rtk.Button{spacing=5,padding=4,font=font,w=80,tagged=true,icon=oct,w=60,h=25,halign='center',label='0'})
+local button = hb_o:add(rtk.Button{color="#2a2a2a",gradient=3,spacing=5,padding=4,font=font,tagged=true,icon=oct,w=60,h=25,halign='center',label='0'})
+button2_c="#451912"
+local button2 = vbox2:add(rtk.Button{gradient=3,y=-2,color=button2_c,spacing=2,padding=4,font="Trebuchet MS",tagged=true,icon=on,h=29,halign='center',label='Auto Apply'})
+local func_on = true
+button2.state = "on"
+button2.current_icon = on
+button2.onclick = function(self, event)
+    if self.state == "on" then
+        self.state = "off"
+        self:attr('color', "#220a04")
+        self:attr('icon', off)
+        self:attr('gradient', 5)
+        self.current_icon = off
+        func_on = false
+    else
+        self.state = "on"
+        self:attr('color', button2_c)
+        self:attr('icon', on)
+        self.current_icon = on
+        func_on = true
+        self:attr('gradient', 3)
+    end
+end
+function p_run()
+    if func_on == true then
+        run()
+    end
+end
+
+button2.onmousedown = function(self,event)
+  self:attr('icon', onof)
+
+end
+button2.onmouseup = function(self,event)
+  self:attr('icon', self.current_icon)
+
+end
+button2.onmouseleave = function(self, event)
+  self:attr('icon', self.current_icon)
+  self:attr("cursor", rtk.mouse.cursors.UNDEFINED)
+
+end
+button2.onmouseenter = function(self, event)
+  self:attr('icon', onof)
+  self:attr("cursor", rtk.mouse.cursors.HAND)
+
+end
+
+local v_chords_box = container:add(rtk.VBox{rborder=false,bborder=false,border='gray',y=20,x=10,spacing=5,padding=25})
+local chord_str = v_chords_box:add(rtk.HBox{padding=5,spacing=5}) --линия тулбара
+b_create_chord = chord_str:add(rtk.Button{padding=2,spacing=25,"Create pool"})
+b_save_chord = chord_str:add(rtk.Button{padding=2,spacing=25,"Save pool"})
+b_delete_chord = chord_str:add(rtk.Button{padding=2,spacing=25,"Delete pool"})
+
+local chord_b_box = v_chords_box:add(rtk.HBox{padding=5,spacing=1}) --линия кнопок
+local button_chords = chord_b_box:add(rtk.Button{"chord1"}) --кнопка
+
+
+
 
 local slider_line = vbox:add(rtk.VBox{x=10,y=35,spacing=5,padding=25})
-
-
 local slider3 = slider_line:add(rtk.Slider{
 tracksize = 10,
 ticksize = 1,
@@ -129,7 +198,7 @@ slider3:attr("thumbcolor", "#443433" )
 end
 slider3.onmousedown = function()
 blurSlider()
-slider3:attr("thumbcolor","#62555a")
+slider3:attr("thumbcolor","#362a29")
 end
 slider3.onmouseleave = blurSlider
 
@@ -172,7 +241,7 @@ b_up.onclick=function()
     b_up:attr("color",pressed)
     b_up:attr("hover",true)
     mode = "up"
-    run()
+    p_run()
 end
 
 b_down.onclick=function()
@@ -181,7 +250,7 @@ b_down.onclick=function()
     b_down:attr("gradient", 3)
     b_down:attr("hover",true)
     mode = "down"
-    run()
+    p_run()
 end
 
 b_rand.onclick=function()
@@ -190,7 +259,7 @@ b_rand.onclick=function()
     b_rand:attr("gradient", 3)
     b_rand:attr("hover",true)
     mode = "random"
-    run()
+    p_run()
 end
 
 
@@ -219,7 +288,7 @@ button.ondragend = function(self, event, dragarg)
     
     -- передача значения
     octave = currentValue
-    run()
+    p_run()
 end
 button.onmousewheel = function(self, event)
     local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
@@ -237,7 +306,7 @@ button.onmousewheel = function(self, event)
 
     -- Здесь передаем значение в octave и запускаем функцию run
     octave = currentValue
-    run()
+    p_run()
     return true
 end
 local dragAccumulatorX = 0
@@ -294,7 +363,7 @@ slider3.onchange = function(self)
     if self.value == slider3._previous_value then return end
     local step = self.value - self.min + 1
     grid = grid_values[step]
-    run()
+    p_run()
     slider3._previous_value = self.value
 end
 
@@ -503,7 +572,7 @@ local main_count = 0 -- Основной счетчик для while цикла
     step_counts[i] = 0
   end
 
-
+  local current_octave = 0 -- Эта переменная будет хранить текущую октаву
 while insert_position < end_position do
   local note_length = g_length
   local current_velocity = velocity -- Будем использовать эту переменную вместо оригинальной
@@ -515,26 +584,30 @@ while insert_position < end_position do
       note_length = alternateLength
     end
   elseif step_mode == 3 then
-    local matched = false
-    if current_step_grid then
-      for i = #current_step_grid, 1, -1 do
-        step_counts[i] = step_counts[i] + 1
-        local v = current_step_grid[i]
-        
-        if step_counts[i] % v.step == 0 then
-          note_length = v.grid_step
-          if v.velocity then
-            current_velocity = v.velocity
-          end
-          matched = true
-          break
+  local matched = false
+  if current_step_grid then
+    for i = #current_step_grid, 1, -1 do
+      step_counts[i] = step_counts[i] + 1
+      local v = current_step_grid[i]
+      
+      if step_counts[i] % v.step == 0 then
+        note_length = v.grid_step
+        if v.velocity then
+          current_velocity = v.velocity
         end
+        if v.octave then
+          current_octave = v.octave
+        end
+        matched = true
+        break
       end
     end
-    
-    if not matched and step_mode ~= 3 then
-      current_velocity = velocity
-    end
+  end
+  
+  if not matched and step_mode ~= 3 then
+    current_velocity = velocity
+    current_octave = octave
+  end
   else
     current_velocity = chord[note].velocity
   end
@@ -553,7 +626,8 @@ while insert_position < end_position do
         end
   
         -- Взрыв октавы
-        local pitch = chord[note].pitch
+        
+        local pitch = chord[note].pitch + (current_octave * 12)
         if octave ~= 0 then
           local randomOctaveShift = math.random(-octave, octave) * 12
           pitch = pitch + randomOctaveShift -- Смещение на случайное количество октав вверх или вниз, сохраняя тон
