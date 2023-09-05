@@ -12,14 +12,12 @@ local wnd = rtk.Window{
 bg = "#1a1a1a"
 }
 
-
+--local grid = 320 --размер основных нот
 
 local mode = "up" --направление
---local grid = 320 --размер основных нот
 local grid_step = 320 --размер для шага step
 local step = 3 --шаг для отклонения grid_step, каждая step нота будет иметь длину grid_step
 local octave = 0 --взрыв октав
-
 local step_mode = 3 --чекснизу
 local velocity = 10
 --[[
@@ -36,9 +34,9 @@ local step_grid = {
     {step = 4, grid_step = 960, velocity = 110},
   },
   { -- Для второго аккорда
-    {step = 2, grid_step = 640, velocity = 40},
-    {step = 3, grid_step = 480, velocity = 60},
-    {step = 4, grid_step = 240, velocity = 100},
+    {step = 2, grid_step = 240, velocity = 10},
+    {step = 3, grid_step = 240, velocity = 10},
+    {step = 4, grid_step = 240, velocity = 10},
   },
   -- и так далее для каждого следующего аккорда
 }
@@ -106,10 +104,17 @@ ticks = true,
 })
 local function blurSlider()
   slider3:blur()
+  
 end
 
-slider3.onmouseup = blurSlider
-slider3.onmousedown = blurSlider
+slider3.onmouseup = function()
+blurSlider()
+slider3:attr("thumbcolor", "#443433" )
+end
+slider3.onmousedown = function()
+blurSlider()
+slider3:attr("thumbcolor","#62555a")
+end
 slider3.onmouseleave = blurSlider
 
 
@@ -174,7 +179,7 @@ end
 
 
 local dragging = false
-local currentValue = 1
+local currentValue = 0
 local prevX, prevY = nil, nil
 
 button.ondragstart = function(self, event, x, y, t)
@@ -461,7 +466,10 @@ local function createArpeggio(direction, g_length, alternateStep, alternateLengt
       local note = 1
       local last_note = nil
       local count = 0
-      local current_step_grid = step_grid[chord_index] or step_grid[1]
+      --local current_step_grid = step_grid[chord_index] or step_grid[1]
+      --local current_step_grid = step_grid[chord_index % #step_grid + 1]
+      local current_step_grid = step_grid[(chord_index - 1) % #step_grid + 1]
+      
           
 local main_count = 0 -- Основной счетчик для while цикла
   local step_counts = {}
