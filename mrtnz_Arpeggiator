@@ -5,6 +5,28 @@ package.path = package.path .. ";" .. resourcePath .. "/Scripts/?.lua"
 local json = require("json")
 reaper.GetSetProjectInfo_String(0, "PROJOFFS", "0", true)
 
+
+base_color = "#3a3a3a"
+
+advanced_color_current = base_color
+advanced_color_pressed = "#355E3B"
+
+legato_color_current = base_color
+legato_color_pressed = "#7a590d" 
+
+auto_apply_color_current="#451912"
+auto_apply_color_pressed="#220a04"
+
+generate_color_current = base_color
+generate_color_pressed = "#220a04"
+
+modes_button_color_current = base_color
+modes_button_color_pressed = "#443433"
+
+knob_rate_label_color = "orange"
+
+
+
 local wnd = rtk.Window{
     w = 560,
     h = 500,
@@ -86,13 +108,19 @@ local step_grid = {
 rtk.add_image_search_path('../../MrtnzScripts/NotePast/images', 'dark')
 local up = rtk.Image.icon('up'):scale(120,120,22,7) -- increase the size of the image
 local down = rtk.Image.icon('down'):scale(120,120,22,7) -- increase the size of the image
-local rand = rtk.Image.icon('rand'):scale(120,120,22,8) -- increase the size of the image
+local rand = rtk.Image.icon('rand'):scale(120,120,22,7) -- increase the size of the image
 local rnd = rtk.Image.icon('rnd'):scale(120,120,22,7) -- increase the size of the image
 local oct = rtk.Image.icon('oct'):scale(120,120,22,7) -- increase the size of the image
 local leg = rtk.Image.icon('leg'):scale(120,120,22,7) -- increase the size of the image
 local save = rtk.Image.icon('save'):scale(120,120,22,7) -- increase the size of the image
 local delete = rtk.Image.icon('trash'):scale(120,120,22,7) -- increase the size of the image
 local page = rtk.Image.icon('page'):scale(120,120,22,7) -- increase the size of the image
+local gen = rtk.Image.icon('gear'):scale(120,120,22,7) -- increase the size of the image
+local gen2 = rtk.Image.icon('gear_l'):scale(120,120,22,7) -- increase the size of the image
+local gen_p = rtk.Image.icon('gen_p'):scale(120,120,22,7) -- increase the size of the image
+local bulb = rtk.Image.icon('bulb1'):scale(120,120,22,7) -- increase the size of the image
+local bulb2 = rtk.Image.icon('bulb2'):scale(120,120,22,7) -- increase the size of the image
+local bulb_en = rtk.Image.icon('bulb_en'):scale(120,120,22,7) -- increase the size of the image
 
 local on = rtk.Image.icon('on'):scale(120,120,22,6) -- increase the size of the image
 local off = rtk.Image.icon('off'):scale(120,120,22,6) -- increase the size of the image
@@ -108,67 +136,137 @@ local vbox2 = container:add(rtk.VBox{y=50,padding=5,x=wnd.w/2-50})
 
 local vbox = container:add(rtk.VBox{})
 
-hb_o = vbox:add(rtk.HBox{y=60,x=10,spacing=5,padding=25})
+hb_o = vbox:add(rtk.VBox{y=60,x=10,spacing=2,padding=25})
 color_b_hb = "#3a3a3a"
 
-local button_str = hb_o:add(rtk.Button{color=color_b_hb,gradient=3,spacing=4,padding=2,font=font,tagged=true,icon=leg,w=80,h=25,halign='center',label='LEGATO'})
+bt2_btgen = hb_o:add(rtk.HBox{})
 
-button_str.state = "on"
-button_str.onclick = function(self, event)
-    if self.state == "on" then
+local button2 = bt2_btgen:add(rtk.Button{
+    gradient=3,
+    color=auto_apply_color_current,
+    spacing=2,
+    padding=4,
+    font="Trebuchet MS",
+    tagged=true,
+    icon=on,
+    h=29,
+    halign='center',
+    label='Auto Apply',
+    
+    })
+    
+    
+    
+local btn_generate = bt2_btgen:add(rtk.Button{
+    gradient=3,
+    color=generate_color_current,
+    spacing=2,
+    padding=4,
+    font="Trebuchet MS",
+    tagged=true,
+    icon=gen,
+    h=29,
+    w=2,
+    halign='center',
+    label='Generate',
+    cursor=rtk.mouse.cursors.HAND,
+})
+btn_generate.onmouseenter=function(self)
+    self:attr('icon', gen2)
+end
+btn_generate.onmouseleave=function(self)
+    self:attr('icon', gen)
+end
+btn_generate.onmousedown=function(self)
+    self:attr('icon', gen_p)
+end
+btn_generate.onmouseup=function(self)
+    self:attr('icon', gen2)
+end
+btn_generate.onclick=function(self)
+    run()
+end
+
+
+
+
+local button_adv = hb_o:add(rtk.Button{
+        gradient=3,
+        color=advanced_color_current,
+        spacing=2,
+        padding=4,
+        font="Trebuchet MS",
+        tagged=true,
+        icon=bulb,
+        h=29,
+        w=94,
+        halign='center',
+        label='Advanced',
+
+})
+
+button_adv.state = "on" 
+button_adv.current_icon = bulb
+button_adv.onmousedown = function(self, event)
+    self:attr('icon', bulb2)  -- Изменение иконки при нажатии кнопки
+end
+
+button_adv.onmouseup = function(self, event)
+    self:attr('icon', self.current_icon)  -- Восстановление текущей иконки после отпускания кнопки
+end
+
+button_adv.onmouseleave = function(self, event)
+    self:attr('icon', self.current_icon)  -- Восстановление текущей иконки при уходе курсора
+    self:attr("cursor", rtk.mouse.cursors.UNDEFINED)
+end
+
+button_adv.onmouseenter = function(self, event)  -- При наведении
+    self:attr('icon', bulb_en)  -- Изменение иконки на bulb_en
+    self:attr("cursor", rtk.mouse.cursors.HAND)
+end
+
+button_adv.onclick = function(self, event)
+    if self.state == "on" then  -- выкл
         self.state = "off"
-        self:attr('color', "#7a590d")
-        self:attr('gradient', 2)
-        extendNotesFlag = true
-        p_run()
-    else
+        self:attr('icon', bulb2)
+        self:attr('color', advanced_color_pressed)
+        self.current_icon = bulb2
+    else  -- вкл
         self.state = "on"
-        self:attr('color', color_b_hb)
-        self:attr('gradient', 3)
-        extendNotesFlag = false
-        p_run()
+        self:attr('icon', bulb)
+        self:attr('color', advanced_color_current)
+        self.current_icon = bulb
     end
 end
 
-button_str.onmouseenter = function(self, event)
-    self:attr("cursor", rtk.mouse.cursors.HAND)
-end
-button2_c="#451912"
-local button2 = hb_o:add(rtk.Button{gradient=3,y=-2,color="#220a04",spacing=2,padding=4,font="Trebuchet MS",tagged=true,icon=off,h=29,halign='center',label='Auto Apply'})
-local btn_generate = hb_o:add(rtk.Button{
-gradient=3,
-y=-2,
-color="#220a04",
-spacing=2,
-padding=4,
-font="Trebuchet MS",
-tagged=true,
-icon=off,
-h=29,
-halign='center',
-label='Generate'})
+
+
 btn_generate:hide()
-local func_on = false
-button2.state = "off"
-button2.current_icon = off
+local func_on = true
+button2.state = "on"
+button2.current_icon = on
 button2.onclick = function(self, event)
-    if self.state == "on" then
+    if self.state == "on" then--выкл
         self.state = "off"
-        self:attr('color', "#220a04")
+        self:attr('color', auto_apply_color_pressed)
         self:attr('icon', off)
         self:attr('gradient', 5)
         self.current_icon = off
         func_on = false
-        btn_generate:hide()
-    else
+        btn_generate:show()
+        btn_generate:animate{'w', dst=85, duration=0.2,"out-bounce"}
+        
+    else --вкл
         self.state = "on"
-        self:attr('color', button2_c)
+        self:attr('color', auto_apply_color_current)
         self:attr('icon', on)
         self.current_icon = on
         func_on = true
         self:attr('gradient', 3)
-        
-        btn_generate:show()
+        btn_generate:animate{'w', dst=15, duration=0.3,"out-bounce"}
+           :after(function()
+               return btn_generate:hide()
+            end)
     end
 end
 
@@ -197,6 +295,41 @@ button2.onmouseenter = function(self, event)
 
 end
 
+
+local button_str = hb_o:add(rtk.Button{
+    color=legato_color_current,
+    gradient=3,
+    spacing=2,
+    padding=4,
+    font=font,
+    tagged=true,
+    icon=leg,
+    w=94,
+    halign='center',
+    label='Legato'
+    })
+
+button_str.state = "on"
+button_str.onclick = function(self, event)
+    if self.state == "on" then
+        self.state = "off"
+        self:attr('color', legato_color_pressed)
+        extendNotesFlag = true
+        p_run()
+    else
+        self.state = "on"
+        self:attr('color', legato_color_current)
+        extendNotesFlag = false
+        p_run()
+    end
+end
+
+button_str.onmouseenter = function(self, event)
+    self:attr("cursor", rtk.mouse.cursors.HAND)
+end
+
+
+
 local v_chords_box = container:add(rtk.VBox{y=20,x=10,spacing=5,padding=25})
 local chord_str = v_chords_box:add(rtk.HBox{spacing=5}) --линия тулбара
 
@@ -212,8 +345,7 @@ local button_chords = chord_b_box:add(rtk.Button{w=200,"Chord 1"}) --кнопк�
 --v_chords_box:hide()
 
 
-
-local slider_line = vbox:add(rtk.VBox{y=35,x=10})
+v_chords_box:hide()
 
 
 
@@ -254,14 +386,14 @@ slider3.onmouseenter = function(self, event)
   slider3:attr("cursor", rtk.mouse.cursors.HAND)
 end
 ]]
-local pressed = "#443433"
+
 local font="Trebuchet MS"
 local vert_b = vbox:add(rtk.VBox{x=10,y=30,spacing=2,padding=25})
 
-local b_up = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=up,halign='center',w=80,'UP'})
-local b_down = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=down,halign='center',w=80,'DOWN'})
+local b_up = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=up,halign='center',w=94,'Up'})
+local b_down = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=down,halign='center',w=94,'Down'})
 vert_b_line=vert_b:add(rtk.HBox{})
-local b_rand = vert_b_line:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=rand,halign='center',w=80,'RANDOM'})
+local b_rand = vert_b_line:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=rand,halign='center',w=94,'Random'})
 local button = vert_b_line:add(rtk.Button{color=color_b_hb,gradient=3,spacing=5,padding=4,font=font,tagged=true,icon=oct,w=10,h=26,halign='center',label='0'})
 button:hide()
 b_rand.onmousedown = function()
@@ -275,37 +407,50 @@ end
 
 local gr = 2
 
+
 function reset_button()
-    b_up:attr("color", "#3a3a3a")
-    b_down:attr("color","#3a3a3a")
-    b_rand:attr("color","#3a3a3a")
+    b_up:attr("color", modes_button_color_current)
+    b_down:attr("color",modes_button_color_current)
+    b_rand:attr("color",modes_button_color_current)
     b_up:attr("gradient", gr)
     b_down:attr("gradient",gr)
     b_rand:attr("gradient",gr)
     b_rand:attr("hover",false)
     b_up:attr("hover",false)
     b_down:attr("hover",false)
+    
 end
-reset_button()
 
+reset_button()
+b_down:attr("color",modes_button_color_pressed)
 b_up.onclick=function()
     reset_button()
     b_up:attr("gradient", 3)
-    b_up:attr("color",pressed)
+    b_up:attr("color",modes_button_color_pressed)
     b_up:attr("hover",true)
     mode = "up"
+    button:attr('label', '0')
+    octave=0
     p_run()
     button:animate{'color', dst="#3a3a3a", duration=0.25}
-    button:animate{'w', dst=25, duration=0.15, easing='in-expo'}
-    button:hide()
+    button:animate{'w', dst=10, duration=0.15, easing='out-expo'}  
+       :after(function()
+           local function after_button()
+              button:hide()
+              b_rand:animate{'color', dst="#3a3a3a", duration=0.25}
+           end
+           return after_button()
+        end)
 end
 
 b_down.onclick=function()
     reset_button()
-    b_down:attr("color",pressed)
+    b_down:attr("color",modes_button_color_pressed)
     b_down:attr("gradient", 3)
     b_down:attr("hover",true)
     mode = "down"
+    button:attr('label', '0')
+    octave=0
     p_run()
     button:animate{'color', dst="#3a3a3a", duration=0.25}
     button:animate{'w', dst=10, duration=0.15, easing='in-expo'}  
@@ -316,15 +461,12 @@ b_down.onclick=function()
            end
            return after_button()
         end)
-    
-    
-    --button:hide()
 end
 
 b_rand.onclick=function()
     reset_button()
-    b_rand:attr("color",pressed)
-    b_rand:animate{'color', dst=pressed, duration=0.25}
+    b_rand:attr("color",modes_button_color_pressed)
+    b_rand:animate{'color', dst=modes_button_color_pressed, duration=0.25}
     
     b_rand:attr("gradient", 3)
     b_rand:attr("hover",true)
@@ -332,7 +474,7 @@ b_rand.onclick=function()
     p_run()
     button:show()
     button:animate{'w', dst=45, duration=0.85, easing='out-expo'}
-    button:animate{'color', dst=pressed, duration=0.55}
+    button:animate{'color', dst=modes_button_color_pressed, duration=0.55}
     button:attr("gradient", 3)
     button:attr("hover",true)
 end
@@ -859,7 +1001,7 @@ function CircleWidget:_handle_draw(offx, offy, alpha, event)
         color = makeDarker(color, -0.091)
     end
     
-    label_color="orange"
+    label_color=knob_rate_label_color
     label_round = 0.5
     
     for i, label in ipairs(labels) do
@@ -1016,8 +1158,14 @@ function run()
 
 end
 
+local lastRoundedValue = nil 
 
-circt1=slider_line:add(CircleWidget{ref='circle', w=150, h=150, borderFraction=0/11})
+
+
+local slider_line = vbox:add(rtk.VBox{y=35,x=10})
+circt1=slider_line:add(CircleWidget{x=80,y=10,ref='circle', w=130, h=130, borderFraction=0/11})
+
+
 local grid_values = {1920, 1280, 960, 640, 480, 320, 240, 160, 120, 80, 60}
 function CircleWidget:onchange()
     if currentValue == 0 then
@@ -1050,18 +1198,21 @@ function CircleWidget:onchange()
       save_notes_to_json("original.json")
     end   
     else
-        --local step = currentValue
         local step = math.floor(currentValue + 0.5)  -- Округляем до ближайшего целого
-        if step == 0 then
-            -- Твой код для обработки step == 0
-        else
-            grid = grid_values[step]
-            p_run()
+    
+        if lastRoundedValue ~= step then  -- Проверяем, изменилось ли округленное значение
+            lastRoundedValue = step  -- Обновляем последнее округленное значение
+    
+            if step == 0 then
+                -- Твой код для обработки step == 0
+            else
+                grid = grid_values[step]
+                p_run()
+            end
         end
         --reaper.ShowConsoleMsg("currentValue: " .. tostring(currentValue) .. " Rounded Step: " .. tostring(step) .. "\n")
     end
      
 end
-
 
 wnd:open()
