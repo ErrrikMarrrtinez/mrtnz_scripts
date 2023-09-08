@@ -208,7 +208,7 @@ local button_adv = hb_o:add(rtk.Button{
 button_adv.state = "on" 
 button_adv.current_icon = bulb
 button_adv.onmousedown = function(self, event)
-    self:attr('icon', bulb2)  -- Изменение иконки при нажатии кнопки
+    self:attr('icon', bulb_en)  -- Изменение иконки при нажатии кнопки
 end
 
 button_adv.onmouseup = function(self, event)
