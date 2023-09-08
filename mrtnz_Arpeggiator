@@ -6,7 +6,7 @@ local json = require("json")
 reaper.GetSetProjectInfo_String(0, "PROJOFFS", "0", true)
 
 local wnd = rtk.Window{
-    w = 322,
+    w = 560,
     h = 500,
     title = 'arp',
 bg = "#1a1a1a"
@@ -108,9 +108,9 @@ local vbox2 = container:add(rtk.VBox{y=50,padding=5,x=wnd.w/2-50})
 
 local vbox = container:add(rtk.VBox{})
 
-hb_o = vbox:add(rtk.HBox{rborder=false,bborder=false,border='gray',y=60,x=10,spacing=5,padding=25})
+hb_o = vbox:add(rtk.HBox{y=60,x=10,spacing=5,padding=25})
 color_b_hb = "#3a3a3a"
-local button = hb_o:add(rtk.Button{color=color_b_hb,gradient=3,spacing=5,padding=4,font=font,tagged=true,icon=oct,w=80,h=25,halign='center',label='0'})
+
 local button_str = hb_o:add(rtk.Button{color=color_b_hb,gradient=3,spacing=4,padding=2,font=font,tagged=true,icon=leg,w=80,h=25,halign='center',label='LEGATO'})
 
 button_str.state = "on"
@@ -134,10 +134,23 @@ button_str.onmouseenter = function(self, event)
     self:attr("cursor", rtk.mouse.cursors.HAND)
 end
 button2_c="#451912"
-local button2 = vbox2:add(rtk.Button{gradient=3,y=-2,color=button2_c,spacing=2,padding=4,font="Trebuchet MS",tagged=true,icon=on,h=29,halign='center',label='Auto Apply'})
-local func_on = true
-button2.state = "on"
-button2.current_icon = on
+local button2 = hb_o:add(rtk.Button{gradient=3,y=-2,color="#220a04",spacing=2,padding=4,font="Trebuchet MS",tagged=true,icon=off,h=29,halign='center',label='Auto Apply'})
+local btn_generate = hb_o:add(rtk.Button{
+gradient=3,
+y=-2,
+color="#220a04",
+spacing=2,
+padding=4,
+font="Trebuchet MS",
+tagged=true,
+icon=off,
+h=29,
+halign='center',
+label='Generate'})
+btn_generate:hide()
+local func_on = false
+button2.state = "off"
+button2.current_icon = off
 button2.onclick = function(self, event)
     if self.state == "on" then
         self.state = "off"
@@ -146,6 +159,7 @@ button2.onclick = function(self, event)
         self:attr('gradient', 5)
         self.current_icon = off
         func_on = false
+        btn_generate:hide()
     else
         self.state = "on"
         self:attr('color', button2_c)
@@ -153,8 +167,11 @@ button2.onclick = function(self, event)
         self.current_icon = on
         func_on = true
         self:attr('gradient', 3)
+        
+        btn_generate:show()
     end
 end
+
 function p_run()
     if func_on == true then
         run()
@@ -180,7 +197,7 @@ button2.onmouseenter = function(self, event)
 
 end
 
-local v_chords_box = container:add(rtk.VBox{rborder=false,bborder=false,border='gray',y=20,x=10,spacing=5,padding=25})
+local v_chords_box = container:add(rtk.VBox{y=20,x=10,spacing=5,padding=25})
 local chord_str = v_chords_box:add(rtk.HBox{spacing=5}) --линия тулбара
 
 
@@ -190,14 +207,17 @@ b_delete_chord = chord_str:add(rtk.Button{font=font,halign='center',w=80,tagged=
 
 
 
-local chord_b_box = v_chords_box:add(rtk.HBox{border="#5a5a5a",rborder=false,bborder=false,x=10,y=10,spacing=5,padding=25}) --линия кнопок
+local chord_b_box = v_chords_box:add(rtk.HBox{x=10,y=10,spacing=5,padding=25}) --линия кнопок
 local button_chords = chord_b_box:add(rtk.Button{w=200,"Chord 1"}) --кнопка
+--v_chords_box:hide()
 
 
 
+local slider_line = vbox:add(rtk.VBox{y=35,x=10})
 
-local slider_line = vbox:add(rtk.VBox{x=10,y=35,spacing=5,padding=25})
-local slider3 = slider_line:add(rtk.Slider{
+
+
+--[[local slider3 = slider_line:add(rtk.Slider{
 tracksize = 10,
 ticksize = 1,
 thumbcolor='#443433',
@@ -233,14 +253,17 @@ end
 slider3.onmouseenter = function(self, event)
   slider3:attr("cursor", rtk.mouse.cursors.HAND)
 end
-
+]]
+local pressed = "#443433"
 local font="Trebuchet MS"
-local vert_b = vbox:add(rtk.HBox{border="#5a5a5a",tborder=false,x=10,y=10,spacing=5,padding=25})
+local vert_b = vbox:add(rtk.VBox{x=10,y=30,spacing=2,padding=25})
+
 local b_up = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=up,halign='center',w=80,'UP'})
 local b_down = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=down,halign='center',w=80,'DOWN'})
-
-local b_rand = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=rand,halign='center',w=80,'RANDOM'})
-
+vert_b_line=vert_b:add(rtk.HBox{})
+local b_rand = vert_b_line:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=rand,halign='center',w=80,'RANDOM'})
+local button = vert_b_line:add(rtk.Button{color=color_b_hb,gradient=3,spacing=5,padding=4,font=font,tagged=true,icon=oct,w=10,h=26,halign='center',label='0'})
+button:hide()
 b_rand.onmousedown = function()
   b_rand:attr("icon", rnd)
 end
@@ -251,7 +274,6 @@ b_rand.onmouseup = function()
 end
 
 local gr = 2
-local pressed = "#443433"
 
 function reset_button()
     b_up:attr("color", "#3a3a3a")
@@ -273,6 +295,9 @@ b_up.onclick=function()
     b_up:attr("hover",true)
     mode = "up"
     p_run()
+    button:animate{'color', dst="#3a3a3a", duration=0.25}
+    button:animate{'w', dst=25, duration=0.15, easing='in-expo'}
+    button:hide()
 end
 
 b_down.onclick=function()
@@ -282,15 +307,34 @@ b_down.onclick=function()
     b_down:attr("hover",true)
     mode = "down"
     p_run()
+    button:animate{'color', dst="#3a3a3a", duration=0.25}
+    button:animate{'w', dst=10, duration=0.15, easing='in-expo'}  
+       :after(function()
+           local function after_button()
+              button:hide()
+              b_rand:animate{'color', dst="#3a3a3a", duration=0.25}
+           end
+           return after_button()
+        end)
+    
+    
+    --button:hide()
 end
 
 b_rand.onclick=function()
     reset_button()
     b_rand:attr("color",pressed)
+    b_rand:animate{'color', dst=pressed, duration=0.25}
+    
     b_rand:attr("gradient", 3)
     b_rand:attr("hover",true)
     mode = "random"
     p_run()
+    button:show()
+    button:animate{'w', dst=45, duration=0.85, easing='out-expo'}
+    button:animate{'color', dst=pressed, duration=0.55}
+    button:attr("gradient", 3)
+    button:attr("hover",true)
 end
 
 
@@ -377,7 +421,7 @@ button.ondragmousemove = function(self, event, dragarg)
 end
 
 
-local grid_values = {1920, 1280, 960, 640, 480, 320, 240, 160, 120, 80, 60}
+--local grid_values = {1920, 1280, 960, 640, 480, 320, 240, 160, 120, 80, 60}
 
 
 
@@ -387,7 +431,7 @@ package.path = package.path .. ";" .. resourcePath .. "/Scripts/?.lua"
 local json = require("json")
 reaper.GetSetProjectInfo_String(0, "PROJOFFS", "0", true)
 --------------надо добавить инвертировние
-
+--[[
 slider3._previous_value = slider3.value
 
 slider3.onchange = function(self)
@@ -398,7 +442,7 @@ slider3.onchange = function(self)
     slider3._previous_value = self.value
 end
 
-
+]]
 
 local function save_notes_to_json(filename)
   local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
@@ -540,184 +584,174 @@ local function sortChord(chord, current_mode)
     end
   end)
 end
-
-
-
-
 local function createArpeggio(direction, g_length, alternateStep, alternateLength)
-  local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
-  if not take then return end
-  local chord_gap_threshold = -1
-  reaper.MIDI_Sort(take)
-  adjustNoteLengths()
-  local _, noteCount = reaper.MIDI_CountEvts(take)
-  local chords = {}
-  local chord = {}
-  local lastEnd = 0
-  -- 1) Gathering notes into chords
-  local hasSelectedNotes = false
-  for i = 0, noteCount - 1 do
-    local retval, selected, _, _, _, _, _, _ = reaper.MIDI_GetNote(take, i)
-    if selected then
-      hasSelectedNotes = true
-      break
-    end
-  end
-
-  for i = 0, noteCount - 1 do
-    local retval, selected, _, startpos, endpos, _, pitch, velocity = reaper.MIDI_GetNote(take, i)
-    
-    local noteLength = endpos - startpos
-    if (not hasSelectedNotes or selected) and noteLength > 120 then
-          if #chord > 0 and startpos - chord[#chord].endpos > 10 then -- You can change this threshold
-            if #chord > 1 then
-              sortChord(chord, current_mode)
-              table.insert(chords, chord)
-            else
-              table.insert(chords, {{startpos = chord[1].startpos, endpos = chord[1].endpos, pitch = chord[1].pitch}})
-            end
-            chord = {}
-          end
-          table.insert(chord, {startpos = startpos, endpos = endpos, pitch = pitch, velocity = velocity})
-          
+    local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
+    if not take then return end
+    local chord_gap_threshold = -1
+    reaper.MIDI_Sort(take)
+    adjustNoteLengths()
+    local _, noteCount = reaper.MIDI_CountEvts(take)
+    local chords = {}
+    local chord = {}
+    local lastEnd = 0
+    -- 1) Gathering notes into chords
+    local hasSelectedNotes = false
+    for i = 0, noteCount - 1 do
+        local retval, selected, _, _, _, _, _, _ = reaper.MIDI_GetNote(take, i)
+        if selected then
+            hasSelectedNotes = true
+            break
         end
-      end
-      if #chord == 1 then
+    end
+
+    for i = 0, noteCount - 1 do
+        local retval, selected, _, startpos, endpos, _, pitch, velocity = reaper.MIDI_GetNote(take, i)
+
+        local noteLength = endpos - startpos
+        if (not hasSelectedNotes or selected) and noteLength > 120 then
+            if #chord > 0 and startpos - chord[#chord].endpos > 10 then -- You can change this threshold
+                if #chord > 1 then
+                    sortChord(chord, current_mode)
+                    table.insert(chords, chord)
+                else
+                    table.insert(chords, {{startpos = chord[1].startpos, endpos = chord[1].endpos, pitch = chord[1].pitch}})
+                end
+                chord = {}
+            end
+            table.insert(chord, {startpos = startpos, endpos = endpos, pitch = pitch, velocity = velocity})
+        end
+    end
+    if #chord == 1 then
         table.insert(chords, {{startpos = chord[1].startpos, endpos = chord[1].endpos, pitch = chord[1].pitch}})
-      elseif #chord > 1 then
+    elseif #chord > 1 then
         sortChord(chord, current_mode)
         table.insert(chords, chord)
-      end
-
-  -- 2) Delete all notes
-  for i = noteCount - 1, 0, -1 do
-    local _, selected, _, startpos, endpos, _, _, _ = reaper.MIDI_GetNote(take, i)
-    local noteLength = endpos - startpos
-    if (not hasSelectedNotes or selected) and noteLength > 120 then
-      reaper.MIDI_DeleteNote(take, i)
     end
-  end
 
-  -- 3) Insert arpeggios for each chord
-  local chordZones = {}
-  for chord_index, chord in ipairs(chords) do
-    local insert_position = chord[1].startpos
-    local end_position = chord[#chord].endpos
-    
-    table.insert(chordZones, {start = insert_position, stop = end_position})
-    
-  local current_step_grid = step_grid[(chord_index - 1) % #step_grid + 1]
-  local current_mode
-  
-  if step_mode == 3 then
-    current_mode = current_step_grid.mode or mode
-  else
-    current_mode = mode
-  end
-  
-  
-    
-    if #chord == 1 then -- Если есть только одна нота
-      while insert_position < end_position do
-        local note_length = g_length
-        if insert_position + note_length > end_position then
-          note_length = end_position - insert_position
+    -- 2) Delete all notes
+    for i = noteCount - 1, 0, -1 do
+        local _, selected, _, startpos, endpos, _, _, _ = reaper.MIDI_GetNote(take, i)
+        local noteLength = endpos - startpos
+        if (not hasSelectedNotes or selected) and noteLength > 120 then
+            reaper.MIDI_DeleteNote(take, i)
         end
-  
-        reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, chord[1].pitch, 100, false)
-        insert_position = insert_position + note_length
-      end
-    else
-      local note = 1
-      local last_note = nil
-
-      local current_step_grid = step_grid[(chord_index - 1) % #step_grid + 1]
-      
-          
-local main_count = 0 -- Основной счетчик для while цикла
-  local step_counts = {}
-  for i = 1, #current_step_grid do
-    step_counts[i] = 0
-  end
-
-  local current_octave = 0 -- Эта переменная будет хранить текущую октаву
-while insert_position < end_position do
-  local note_length = g_length
-  local current_velocity = velocity -- Будем использовать эту переменную вместо оригинальной
-  
-  main_count = main_count + 1  -- Увеличиваем основной счетчик
-  
-  if step_mode == 2 and alternateStep and alternateLength then
-    if main_count % alternateStep == 0 then
-      note_length = alternateLength
     end
-  elseif step_mode == 3 then
-  local matched = false
-  if current_step_grid then
-    for i = #current_step_grid, 1, -1 do
-      step_counts[i] = step_counts[i] + 1
-      local v = current_step_grid[i]
-      
-      if step_counts[i] % v.step == 0 then
-        note_length = v.grid_step
-        if v.velocity then
-          current_velocity = v.velocity
-        end
-        if v.octave then
-          current_octave = v.octave
-        end
-        matched = true
-        break
-      end
-    end
-  end
-  
-  if not matched and step_mode ~= 3 then
-    current_velocity = velocity
-    current_octave = octave
-  end
-  else
-    current_velocity = chord[note].velocity
-  end
-  sortChord(chord, current_mode)
-        if current_mode == "random" then
-          repeat
-            note = math.random(#chord)
-          until note ~= last_note or #chord == 1
+
+    -- 3) Insert arpeggios for each chord
+    local chordZones = {}
+    for chord_index, chord in ipairs(chords) do
+        local insert_position = chord[1].startpos
+        local end_position = chord[#chord].endpos
+
+        table.insert(chordZones, {start = insert_position, stop = end_position})
+
+        local current_step_grid = step_grid[(chord_index - 1) % #step_grid + 1]
+        local current_mode
+
+        if step_mode == 3 then
+            current_mode = current_step_grid.mode or mode
+        else
+            current_mode = mode
         end
 
-  
-        last_note = note
-  
-        if insert_position + note_length > end_position then
-          note_length = end_position - insert_position
+        if #chord == 1 then -- Если есть только одна нота
+            while insert_position < end_position do
+                local note_length = g_length
+                if insert_position + note_length > end_position then
+                    note_length = end_position - insert_position
+                end
+
+                reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, chord[1].pitch, 100, false)
+                insert_position = insert_position + note_length
+            end
+        else
+            local note = 1
+            local last_note = nil
+
+            local current_step_grid = step_grid[(chord_index - 1) % #step_grid + 1]
+
+            local main_count = 0 -- Основной счетчик для while цикла
+            local step_counts = {}
+            for i = 1, #current_step_grid do
+                step_counts[i] = 0
+            end
+
+            local current_octave = 0 -- Эта переменная будет хранить текущую октаву
+            while insert_position < end_position do
+                local note_length = g_length
+                local current_velocity = velocity -- Будем использовать эту переменную вместо оригинальной
+
+                main_count = main_count + 1  -- Увеличиваем основной счетчик
+
+                if step_mode == 2 and alternateStep and alternateLength then
+                    if main_count % alternateStep == 0 then
+                        note_length = alternateLength
+                    end
+                elseif step_mode == 3 then
+                    local matched = false
+                    if current_step_grid then
+                        for i = #current_step_grid, 1, -1 do
+                            step_counts[i] = step_counts[i] + 1
+                            local v = current_step_grid[i]
+
+                            if step_counts[i] % v.step == 0 then
+                                note_length = v.grid_step
+                                if v.velocity then
+                                    current_velocity = v.velocity
+                                end
+                                if v.octave then
+                                    current_octave = v.octave
+                                end
+                                matched = true
+                                break
+                            end
+                        end
+                    end
+
+                    if not matched and step_mode ~= 3 then
+                        current_velocity = velocity
+                        current_octave = octave
+                    end
+                else
+                    current_velocity = chord[note].velocity
+                end
+                sortChord(chord, current_mode)
+                if current_mode == "random" then
+                    repeat
+                        note = math.random(#chord)
+                    until note ~= last_note or #chord == 1
+                end
+
+                last_note = note
+
+                if insert_position + note_length > end_position then
+                    note_length = end_position - insert_position
+                end
+
+                -- Взрыв октавы
+                local pitch = chord[note].pitch + (current_octave * 12)
+                if octave ~= 0 then
+                    local randomOctaveShift = math.random(-octave, octave) * 12
+                    pitch = pitch + randomOctaveShift -- Смещение на случайное количество октав вверх или вниз, сохраняя тон
+                end
+                reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, pitch, current_velocity, false)
+                insert_position = insert_position + note_length
+
+                if current_mode ~= "random" then
+                    note = (note % #chord) + 1
+                end
+            end
         end
-  
-        -- Взрыв октавы
-        
-        local pitch = chord[note].pitch + (current_octave * 12)
-        if octave ~= 0 then
-          local randomOctaveShift = math.random(-octave, octave) * 12
-          pitch = pitch + randomOctaveShift -- Смещение на случайное количество октав вверх или вниз, сохраняя тон
-        end
-        reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, pitch, current_velocity, false) 
-        insert_position = insert_position + note_length
-  
-        if current_mode ~= "random" then
-          note = (note % #chord) + 1
-        end
-      end
     end
-  end
-  if extendNotesFlag then
-    for _, zone in ipairs(chordZones) do
-      extendNotesToEndOfBar(zone.start, zone.stop)
+    if extendNotesFlag then
+        for _, zone in ipairs(chordZones) do
+            extendNotesToEndOfBar(zone.start, zone.stop)
+        end
     end
-  end
 
     save_notes_to_json("modify.json")
-    
 end
+
 --[[
 reaper.Undo_BeginBlock()
 
@@ -725,7 +759,222 @@ reaper.Undo_EndBlock("Create Arpeggio from Chords", -1)]]
 
 
   
+local currentValue = 0
+CircleWidget = rtk.class('CircleWidget', rtk.Spacer)
+CircleWidget.register{
+    radius = rtk.Attribute{default=40},
+    borderFraction = rtk.Attribute{default=1}, -- Доля границы (от 0 до 1)
+    color = rtk.Attribute{type='color', default='red'},
+    borderColor = rtk.Attribute{type='color', default='gray'},
+    borderwidth = rtk.Attribute{default=5},
+}
+function CircleWidget:initialize(attrs, ...)
+    rtk.Spacer.initialize(self, attrs, CircleWidget.attributes.defaults, ...)
+    self.alpha2 = 0.07
+    self.currentRadius = 0
+end
 
+function makeDarker(color, amount)
+        local r, g, b = color:match("#(%x%x)(%x%x)(%x%x)")
+        r = math.floor(math.max(0, tonumber(r, 16) * (1 - amount)))
+        g = math.floor(math.max(0, tonumber(g, 16) * (1 - amount)))
+        b = math.floor(math.max(0, tonumber(b, 16) * (1 - amount)))
+        return string.format("#%02x%02x%02x", r, g, b)
+end
+function CircleWidget:_handle_draw(offx, offy, alpha, event)
+    local calc = self.calc
+    local x = offx + calc.x + calc.w / 2
+    local y = offy + calc.y + calc.h / 2
+    --local knobRadius = calc.radius
+    local knobRadius = calc.radius + self.currentRadius  -- добавляем текущее изменение радиуса
+    
+    local startAngle = 90
+    local labels = {"Original","1/2", "1/3", "1/4", "1/6", "1/8", "1/12", "1/16",  "1/24", "1/32", "1/48", "1/64"}
+    local stepAngle = 360 / #labels
+    local labelRadius = knobRadius + 13
+    local borderAngle = startAngle + 360 * (currentValue / (#labels - 1))
+    local thickness = 12
+    local alpha2 = 0.07
+    
+    for i = 1, 9 do
+        local alpha = alpha2 * (10 - i)
+        gfx.set(0, 0, 0, alpha)
+        gfx.circle(x - 1, y + 4, knobRadius - calc.borderwidth - 17 + i, 20, true)
+    end
+    
+    local outerRadius = math.floor(knobRadius - calc.borderwidth - 12)
+    local steps = 20  -- Количество шагов градиента
+    local stepSize = outerRadius / steps  -- Размер каждого шага
+    local color = '#2a2a2a'
+    for i = steps, 1, -1 do
+        self:setcolor(color)
+        gfx.circle(x, y, stepSize * i, 290, true)
+        color = makeDarker(color, -0.035)
+    end
+        
+        local markerAngle = math.rad(startAngle + stepAngle * currentValue)
+        
+        -- Расстояние от центра большого круга до метки (поменял на knobRadius - 5)
+        local markerDistance = knobRadius - 55
+        
+        -- Координаты метки
+        local markerX = x + markerDistance * math.cos(markerAngle)
+        local markerY = y + markerDistance * math.sin(markerAngle)
+        
+        -- Округляем координаты
+        markerX = math.floor(markerX + 0.5)
+        markerY = math.floor(markerY + 0.5)
+        
+        bl = 3
+        color = makeDarker(color, 0.065)
+        self:setcolor(color)  -- Цвет метки, можно выбрать другой
+        gfx.circle(markerX, markerY, 6, bl, true)
+        
+        local markerAngle = math.rad(startAngle + stepAngle * currentValue)
+        
+        -- Расстояние от центра большого круга до метки (поменял на knobRadius - 5)
+        local markerDistance = knobRadius - 25
+        
+        -- Координаты метки
+        local markerX = x + markerDistance * math.cos(markerAngle)
+        local markerY = y + markerDistance * math.sin(markerAngle)
+        
+        -- Округляем координаты
+        markerX = math.floor(markerX + 0.5)
+        markerY = math.floor(markerY + 0.5)
+        
+        bl = 3
+        color = makeDarker(color, -0.035)
+        self:setcolor(color)  -- Цвет метки, можно выбрать другой
+        gfx.circle(markerX, markerY, 5, bl, true)
+        
+        ---
+    local innerRadius = math.floor((knobRadius - calc.borderwidth - 12) * 0.75)
+    local steps = 10  -- Количество шагов градиента
+    local stepSize = innerRadius / steps  -- Размер каждого шага
+    local color = '#3a3a3a'
+    for i = steps, 1, -1 do
+        self:setcolor(color)
+        gfx.circle(x, y, stepSize * i, 290, true)
+        color = makeDarker(color, -0.091)
+    end
+    
+    label_color="orange"
+    label_round = 0.5
+    
+    for i, label in ipairs(labels) do
+        local angle = math.rad(startAngle + stepAngle * (i - 1))
+        local lx = x + labelRadius * math.cos(angle)
+        local ly = y + labelRadius * math.sin(angle)
+        
+        local isNearestLabel = math.abs(i - 1 - currentValue) < label_round
+        
+        if isNearestLabel then  -- здесь проверка на ближайшую метку
+            self:setcolor(label_color)
+        else
+            self:setcolor('#8a8a8a')
+        end
+        gfx.setfont(1, "Book Antiqua", 13)
+        gfx.x = lx - gfx.measurestr(label) / 2
+        gfx.y = ly -9
+        gfx.drawstr(label)
+    end
+
+    
+    local lineLengths = {5}  -- длины линий
+    local lineCount = #lineLengths  -- количество разных длин линий
+    local totalLines = #labels  -- общее количество линий
+    local lineAngleStep = 360 / totalLines  -- шаг угла для каждой линии
+
+for i = 1, totalLines do
+        local isNearestLabel = math.abs(i - 1 - currentValue) < label_round
+        
+        if isNearestLabel then  -- здесь проверка на ближайшую метку
+            self:setcolor(label_color)
+        else
+            self:setcolor('#8a8a8a')
+        end
+
+    local angle = math.rad(startAngle + lineAngleStep * (i - 1))
+    local lineLength = lineLengths[(i - 1) % lineCount + 1]  -- выбор длины линии
+    local x1 = x + (knobRadius - 5) * math.cos(angle)
+    local y1 = y + 1 + (knobRadius - 5) * math.sin(angle)
+    local x2 = x + (knobRadius - 5 - lineLength) * math.cos(angle)
+    local y2 = y + 1 + (knobRadius - 5 - lineLength) * math.sin(angle)
+
+    gfx.line(x1, y1, x2, y2, 1)
+end
+
+    
+end
+
+local dragging = false
+local prevY = nil
+local sensitivity = 0.039  -- уменьшено для большей чувствительности
+CircleWidget.currentValue = 0
+
+CircleWidget.ondragstart = function(self, event, x, y, t)
+    dragging = true
+    prevY = y
+    self.alpha2 = 0.02
+    
+
+    return true
+end
+
+CircleWidget.ondragend = function(self, event, dragarg)
+    self:attr('cursor', nil)
+    dragging = false
+    prevY = nil
+    self.alpha2 = 0.07
+
+end
+
+local lerpSpeed = 0.01
+local lastNearestLabel = nil
+
+
+
+
+CircleWidget.ondragmousemove = function(self, event, dragarg)
+    if dragging and prevY then
+        local delta = event.y - prevY
+        currentValue = currentValue - delta * sensitivity
+        currentValue = math.max(0, math.min(11, currentValue))  -- 11 - максимальное значение
+
+        local nearestLabel = math.floor(currentValue)
+        if currentValue - nearestLabel >= 0.5 then
+            nearestLabel = nearestLabel + 1
+        end
+
+        if lastNearestLabel and math.abs(nearestLabel - lastNearestLabel) > 1 then
+            nearestLabel = lastNearestLabel + math.sign(nearestLabel - lastNearestLabel)
+        end
+
+        lastNearestLabel = nearestLabel
+
+        local threshold = 0.19
+
+        if math.abs(currentValue - nearestLabel) < threshold then
+            currentValue = nearestLabel
+        else
+            currentValue = currentValue * (1 - lerpSpeed) + nearestLabel * lerpSpeed
+        end
+
+        local borderFraction = currentValue / 11  -- 11 - максимальное значение
+        self:attr('borderFraction', borderFraction)
+
+        prevY = event.y
+        self:onchange()
+    end
+end
+
+
+
+
+function math.sign(x)
+    return x > 0 and 1 or x < 0 and -1 or 0
+end
 
 
 
@@ -765,6 +1014,53 @@ function run()
   end
 
 
+end
+
+
+circt1=slider_line:add(CircleWidget{ref='circle', w=150, h=150, borderFraction=0/11})
+local grid_values = {1920, 1280, 960, 640, 480, 320, 240, 160, 120, 80, 60}
+function CircleWidget:onchange()
+    if currentValue == 0 then
+    local selected_pattern = {notes = {}}
+    local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
+    local _, numNotes, _, _ = reaper.MIDI_CountEvts(take)
+    for i = 0, numNotes - 1 do
+      local _, selected, _, startppqpos, endppqpos, _, pitch, velocity = reaper.MIDI_GetNote(take, i)
+      if selected then
+        local position = startppqpos
+        local length = endppqpos - position
+        table.insert(selected_pattern.notes, {position = position, length = length, velocity = velocity, pitch = pitch})
+      end
+    end
+    
+    
+    local modify_pattern = load_notes("modify.json")
+    
+    
+    
+    if compare_patterns(selected_pattern, modify_pattern) then
+      local original_pattern = load_notes("original.json")
+      -- Удаляем текущие выделенные ноты
+      delete_selected_notes(take)
+      -- Вставляем ноты из original.json
+      for i, note in ipairs(original_pattern.notes) do
+        reaper.MIDI_InsertNote(take, true, false, note.position, note.position + note.length, 0, note.pitch, note.velocity, false)
+      end
+    else
+      save_notes_to_json("original.json")
+    end   
+    else
+        --local step = currentValue
+        local step = math.floor(currentValue + 0.5)  -- Округляем до ближайшего целого
+        if step == 0 then
+            -- Твой код для обработки step == 0
+        else
+            grid = grid_values[step]
+            p_run()
+        end
+        --reaper.ShowConsoleMsg("currentValue: " .. tostring(currentValue) .. " Rounded Step: " .. tostring(step) .. "\n")
+    end
+     
 end
 
 
