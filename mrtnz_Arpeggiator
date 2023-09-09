@@ -32,7 +32,7 @@ main_background_color = "#1a1a1a"
 
 
 local wnd = rtk.Window{
-    w = 560,
+    w = 355,
     h = 500,
     title = 'arp',
 bg = main_background_color
@@ -41,10 +41,10 @@ bg = main_background_color
 --local grid = 320 --размер основных нот
 
 local mode = "down" --направление
-local grid_step = 320 --размер для шага step
-local step = 3 --шаг для отклонения grid_step, каждая step нота будет иметь длину grid_step
+local grid_step = 240 --размер для шага step
+local step = 2 --шаг для отклонения grid_step, каждая step нота будет иметь длину grid_step
 local octave = 0 --взрыв октав
-local step_mode = 2 --чекснизу
+local step_mode = 1 --чекснизу
 local velocity = 100
 local extendNotesFlag = false --легато
 --[[
@@ -64,7 +64,7 @@ local step_grid = {
 
   },
   { -- Для второго аккорда
-    mode = "random",
+    mode = "up",
 
       {step = 1, grid_step = 960, velocity = 25, octave = 0},
       {step = 2, grid_step = 240, velocity = 35, octave = 1},
@@ -125,9 +125,9 @@ local leg = rtk.Image.icon('leg'):scale(120,120,22,7) -- increase the size of th
 local save = rtk.Image.icon('save'):scale(120,120,22,7) -- increase the size of the image
 local delete = rtk.Image.icon('trash'):scale(120,120,22,7) -- increase the size of the image
 local page = rtk.Image.icon('page'):scale(120,120,22,7) -- increase the size of the image
---local gen = rtk.Image.icon('gear'):scale(120,120,22,7) -- increase the size of the image
---local gen2 = rtk.Image.icon('gear_l'):scale(120,120,22,7) -- increase the size of the image
---local gen_p = rtk.Image.icon('gen_p'):scale(120,120,22,7) -- increase the size of the image
+local gen11 = rtk.Image.icon('gear'):scale(120,120,22,7) -- increase the size of the image
+local gen22 = rtk.Image.icon('gear_l'):scale(120,120,22,7) -- increase the size of the image
+local gen_pp = rtk.Image.icon('gen_p'):scale(120,120,22,7) -- increase the size of the image
 local bulb = rtk.Image.icon('bulb1'):scale(120,120,22,7) -- increase the size of the image
 local bulb2 = rtk.Image.icon('bulb2'):scale(120,120,22,7) -- increase the size of the image
 local bulb_en = rtk.Image.icon('bulb_en'):scale(120,120,22,7) -- increase the size of the image
@@ -200,8 +200,8 @@ end
 
 
 
-
-local button_adv = hb_o:add(rtk.Button{
+advanced_slid_b=hb_o:add(rtk.VBox{})
+local button_adv = advanced_slid_b:add(rtk.Button{
         gradient=3,
         color=advanced_color_current,
         spacing=2,
@@ -215,9 +215,42 @@ local button_adv = hb_o:add(rtk.Button{
         label='Advanced',
 
 })
+advanced_slider_slider=advanced_slid_b:add(rtk.VBox{h=1.1})
+local new_color_advanced = makeDarker("#6d694f", -0.5)
 
-button_adv.state = "on" 
+
+
+
+local slider_mod_advanced = advanced_slider_slider:add(rtk.Slider{
+  w=base_wight_button/10,
+  thumbcolor='transparent',
+  color=new_color_advanced,
+  thumsize=0.2,
+  h=1.1,
+  min=1,
+  max=3,
+  step=1,
+  tracksize=2,
+  value=2,
+  hotzone=1,
+  lhotzone=1,
+  --cursor=rtk.mouse.cursors.REAPER_BORDER_RIGHT,
+})
+slider_mod_advanced.onmouseenter=function(self)
+  
+end
+slider_mod_advanced:onblur()
+slider_mod_advanced:hide()
+slider_mod_advanced.onchange = function(self, event)
+    --self:attr('disabled', true)
+end
+
+
+button_adv.state = 1
 button_adv.current_icon = bulb
+
+
+
 button_adv.onmousedown = function(self, event)
     self:attr('icon', bulb_en)  -- Изменение иконки при нажатии кнопки
 end
@@ -235,20 +268,7 @@ button_adv.onmouseenter = function(self, event)  -- При наведении
     self:attr('icon', bulb_en)  -- Изменение иконки на bulb_en
     self:attr("cursor", rtk.mouse.cursors.HAND)
 end
-
-button_adv.onclick = function(self, event)
-    if self.state == "on" then  -- выкл
-        self.state = "off"
-        self:attr('icon', bulb2)
-        self:attr('color', advanced_color_pressed)
-        self.current_icon = bulb2
-    else  -- вкл
-        self.state = "on"
-        self:attr('icon', bulb)
-        self:attr('color', advanced_color_current)
-        self.current_icon = bulb
-    end
-end
+        
 
 
 
@@ -339,17 +359,23 @@ slid_length = hb_stac_leg:add(rtk.Slider{
   tracksize=2,
   
 })
-
--- Обработчик изменения слайдера
+local globalSliderValue = 100 
 slid_length.onchange = function(self, event)
-    amount = self.value / -120
-    local new_color = makeDarker("#4a544d", amount)
-    self:attr('color', new_color)
+  amount = self.value / -120
+  local new_color = makeDarker("#4a544d", amount)
+  self:attr('color', new_color)
+  globalSliderValue = self.value
+
+  -- Изменение имени кнопки в зависимости от значения слайдера
+  if self.value < 35 then
+    button_str:attr('label', 'Staccato')
+  else
+    button_str:attr('label', 'Legato')
+  end
+  
+  p_run()
 end
-
-
-
-slid_length:show()  
+--slid_length:show()  
 button_str.state = "on"
 button_str.onclick = function(self, event)
     if self.state == "on" then
@@ -440,10 +466,73 @@ slider3.onmouseenter = function(self, event)
 end
 ]]
 
-local slider_line = vbox:add(rtk.VBox{y=27,spacing=2,padding=25})
+local box_second_advanced = vbox:add(rtk.HBox{})
+
+local slider_line = box_second_advanced:add(rtk.VBox{y=27,spacing=2,padding=25})
+
+local sliders_box_v = box_second_advanced:add(rtk.VBox{bg="#2a2a2a",border=advanced_color_pressed,spacing=2,padding=2,w=150,h=80,y=80})
+
+slider_first=sliders_box_v:add(rtk.HBox{y=10})
+
+adv_thumb_size=5
+adv_track_size=7
+adv_color="#987654"
+--advanced_color_pressed
+adv_slider_w=110
+
+local slider_velocity = slider_first:add(rtk.Slider{
+    thumbsize=adv_thumb_size,
+    tracksize=adv_track_size,
+    color=adv_color,
+    step=1,
+    min=0,
+    max=127,
+    w=adv_slider_w,
+})
+
+vel_text=slider_first:add(rtk.Text{x=4,"VEL",y=-3})
+
+
+slider_velocity.onchange=function(self, event)
+  if step_mode == 2 then  -- Проверяем, установлен ли нужный режим
+    if self.value == 0 then
+      vel_text:attr('text', 'VEL')
+    else
+      vel_text:attr('text', self.value)
+    end
+    velocity = self.value  -- Устанавливаем velocity равным текущему значению слайдера
+    p_run()
+  end
+end
+
+slider_velocity.onmousedown = function(self, event)
+    
+end
+
+slider_velocity.onmouseup = function(self, event)
+    vel_text:attr('text', 'VEL')
+end
+
+sliders_box_v:hide()
+slider_sec=sliders_box_v:add(rtk.HBox{y=10,halign='center'})
+step_text=slider_sec:add(rtk.Text{y=7,"STEP"})
+local slider_velocity2 = slider_sec:add(rtk.Slider{
+    thumbsize=adv_thumb_size,
+    tracksize=adv_track_size,
+    color=adv_color,
+    x=4,
+    w=adv_slider_w,
+    ticksize=2,
+    y=11,
+    step=1,
+    min=1,
+    max=6,
+    ticks=true,
+})
 
 local font="Trebuchet MS"
 local vert_b = vbox:add(rtk.HBox{x=10,spacing=2,padding=25})
+modes_button_wight = base_wight_button - 15
 
 local b_up = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=up,halign='center',w=base_wight_button,'Up'})
 local b_down = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=down,halign='center',w=base_wight_button,'Down'})
@@ -463,7 +552,43 @@ end
 
 local gr = 2
 
-
+button_adv.onclick = function(self, event)
+    if self.state == 1 then  -- выкл
+        self.state = 2
+        self:attr('icon', bulb2)
+        self:attr('color', advanced_color_pressed)
+        self.current_icon = bulb2
+        slider_mod_advanced:show()
+        slider_mod_advanced:animate{'w', dst=base_wight_button, duration=0.1, easing="in-quad"}
+        step_mode=2
+        sliders_box_v:show()
+    elseif self.state == 2 then  -- вкл
+        self.state = 3  -- переход к третьему состоянию
+        self:attr('icon', gen22)  -- тут можешь установить другую иконку для третьего состояния, если нужно
+        self:attr('color', '#3f0b0b')  -- красный цвет для третьего состояния
+        self.current_icon = gen11
+        step_mode=3
+        sliders_box_v:hide()
+    else  -- третье состояние
+        self.state = 1
+        self:attr('icon', bulb)
+        self:attr('color', advanced_color_current)
+        self.current_icon = bulb
+        slider_mod_advanced:animate{'w', dst=base_wight_button/10, duration=0.1, easing="out-quad"}
+        :after(function()
+            local function jopa2()
+               slider_mod_advanced:hide()
+            end
+            return jopa2()
+         end)
+         step_mode=1
+         sliders_box_v:hide()
+    end
+    slider_mod_advanced:attr('value', button_adv.state)
+    slider_mod_advanced:attr('color', button_adv.color)
+    p_run()
+    
+end
 function reset_button()
     b_up:attr("color", modes_button_color_current)
     b_down:attr("color",modes_button_color_current)
@@ -474,7 +599,13 @@ function reset_button()
     b_rand:attr("hover",false)
     b_up:attr("hover",false)
     b_down:attr("hover",false)
-    
+end
+function reset_animate_button()
+    local def_dur = 0.3
+    local eas="out-back"
+    b_down:animate{'w', dst=base_wight_button, duration=def_dur, easing=eas}
+    b_up:animate{'w', dst=base_wight_button, duration=def_dur, easing=eas}
+    b_rand:animate{'w', dst=base_wight_button, duration=def_dur, easing=eas}
 end
 
 reset_button()
@@ -494,6 +625,8 @@ b_up.onclick=function()
            local function after_button()
               button:hide()
               b_rand:animate{'color', dst="#3a3a3a", duration=0.25}
+              
+              reset_animate_button()
            end
            return after_button()
         end)
@@ -514,26 +647,35 @@ b_down.onclick=function()
            local function after_button()
               button:hide()
               b_rand:animate{'color', dst="#3a3a3a", duration=0.25}
+              reset_animate_button()
            end
-           return after_button()
+           return after_button() 
         end)
+        
 end
+
+
 
 b_rand.onclick=function()
     reset_button()
     b_rand:attr("color",modes_button_color_pressed)
     b_rand:animate{'color', dst=modes_button_color_pressed, duration=0.25}
-    
+    local def_dur = 0.31
+    local eas="in-out-quad"
     b_rand:attr("gradient", 3)
     b_rand:attr("hover",true)
     mode = "random"
     p_run()
     button:show()
-    button:animate{'w', dst=45, duration=0.85, easing='out-expo'}
+    button:animate{'w', dst=45, duration=def_dur, easing=eas}
     
-    button:animate{'color', dst=modes_button_color_pressed, duration=0.55}
+    button:animate{'color', dst=modes_button_color_pressed, duration=0.85}
     button:attr("gradient", 3)
     button:attr("hover",true)
+    b_down:animate{'w', dst=modes_button_wight, duration=def_dur, easing=eas}
+    b_up:animate{'w', dst=modes_button_wight, duration=def_dur, easing=eas}
+    b_rand:animate{'w', dst=modes_button_wight, duration=def_dur, easing=eas}
+    
 end
 
 
@@ -740,9 +882,15 @@ function adjustNoteLengths()
     reaper.MIDI_Sort(take)
 end
 function extendNotesToEndOfBar(startZone, endZone)
+  -- Используем глобальное значение или 100 по умолчанию
+  local sliderValue = globalSliderValue or 100
+
+  -- Защита от nil для startZone и endZone
+  if not startZone or not endZone then return end
+
   local midiEditor = reaper.MIDIEditor_GetActive()
   if not midiEditor then return end
-  
+
   local take = reaper.MIDIEditor_GetTake(midiEditor)
   
   local _, noteCount, _, _ = reaper.MIDI_CountEvts(take)
@@ -752,7 +900,7 @@ function extendNotesToEndOfBar(startZone, endZone)
     local retval, sel, muted, startppq, endppq, chan, pitch, vel = reaper.MIDI_GetNote(take, i)
     
     if sel and startppq >= startZone and endppq <= endZone then
-      extendTo = endZone  -- Теперь используем endZone вместо measureEndPPQ
+      extendTo = endZone
       
       for j = i + 1, noteCount - 1 do
         local _, _, _, startppq2, _, _, pitch2, _ = reaper.MIDI_GetNote(take, j)
@@ -762,16 +910,28 @@ function extendNotesToEndOfBar(startZone, endZone)
           break
         end
       end
-
+      
+      -- Рассчитываем новую длину ноты с учетом значения слайдера
+      local newLength = extendTo - startppq
+      local maxExtendLength = endZone - startppq
+      newLength = newLength * (sliderValue / 100)
+      
+      -- Защита от установки длины меньше 64 тиков и больше максимальной
+      newLength = math.max(64, math.min(newLength, maxExtendLength))
+      
+      -- Рассчитываем новую конечную позицию ноты
+      local newExtendTo = startppq + newLength
+      
       -- Защита от ситуации, когда конечная позиция меньше начальной
-      if extendTo > startppq then
-        reaper.MIDI_SetNote(take, i, sel, muted, startppq, extendTo, chan, pitch, vel, false)
+      if newExtendTo > startppq then
+        reaper.MIDI_SetNote(take, i, sel, muted, startppq, newExtendTo, chan, pitch, vel, false)
       end
     end
   end
   
   reaper.MIDI_Sort(take)
 end
+
 
 
 local function sortChord(chord, current_mode)
@@ -955,7 +1115,6 @@ end
 reaper.Undo_BeginBlock()
 
 reaper.Undo_EndBlock("Create Arpeggio from Chords", -1)]]
-
 
   
 local currentValue = 0
