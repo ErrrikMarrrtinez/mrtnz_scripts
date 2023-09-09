@@ -7,23 +7,27 @@ reaper.GetSetProjectInfo_String(0, "PROJOFFS", "0", true)
 
 
 base_color = "#3a3a3a"
+base_wight_button = 94
+
 
 advanced_color_current = base_color
-advanced_color_pressed = "#355E3B"
+advanced_color_pressed = "#6d694f"
 
 legato_color_current = base_color
-legato_color_pressed = "#7a590d" 
+legato_color_pressed = "#4a544d" 
 
-auto_apply_color_current="#451912"
-auto_apply_color_pressed="#220a04"
+auto_apply_color_current="#322a26"
+auto_apply_color_pressed="#211c1a"
 
-generate_color_current = base_color
+generate_color_current = "#3d342f"
 generate_color_pressed = "#220a04"
 
 modes_button_color_current = base_color
 modes_button_color_pressed = "#443433"
 
-knob_rate_label_color = "orange"
+knob_rate_label_color = "white"
+main_background_color = "#1a1a1a"
+
 
 
 
@@ -31,7 +35,7 @@ local wnd = rtk.Window{
     w = 560,
     h = 500,
     title = 'arp',
-bg = "#1a1a1a"
+bg = main_background_color
 }
 
 --local grid = 320 --размер основных нот
@@ -40,8 +44,8 @@ local mode = "down" --направление
 local grid_step = 320 --размер для шага step
 local step = 3 --шаг для отклонения grid_step, каждая step нота будет иметь длину grid_step
 local octave = 0 --взрыв октав
-local step_mode = 1 --чекснизу
-local velocity = 101
+local step_mode = 2 --чекснизу
+local velocity = 100
 local extendNotesFlag = false --легато
 --[[
 ===step modes===
@@ -103,7 +107,13 @@ local step_grid = {
 
 
 
-
+function makeDarker(color, amount)
+        local r, g, b = color:match("#(%x%x)(%x%x)(%x%x)")
+        r = math.floor(math.max(0, tonumber(r, 16) * (1 - amount)))
+        g = math.floor(math.max(0, tonumber(g, 16) * (1 - amount)))
+        b = math.floor(math.max(0, tonumber(b, 16) * (1 - amount)))
+        return string.format("#%02x%02x%02x", r, g, b)
+end
 
 rtk.add_image_search_path('../../MrtnzScripts/NotePast/images', 'dark')
 local up = rtk.Image.icon('up'):scale(120,120,22,7) -- increase the size of the image
@@ -115,16 +125,16 @@ local leg = rtk.Image.icon('leg'):scale(120,120,22,7) -- increase the size of th
 local save = rtk.Image.icon('save'):scale(120,120,22,7) -- increase the size of the image
 local delete = rtk.Image.icon('trash'):scale(120,120,22,7) -- increase the size of the image
 local page = rtk.Image.icon('page'):scale(120,120,22,7) -- increase the size of the image
-local gen = rtk.Image.icon('gear'):scale(120,120,22,7) -- increase the size of the image
-local gen2 = rtk.Image.icon('gear_l'):scale(120,120,22,7) -- increase the size of the image
-local gen_p = rtk.Image.icon('gen_p'):scale(120,120,22,7) -- increase the size of the image
+--local gen = rtk.Image.icon('gear'):scale(120,120,22,7) -- increase the size of the image
+--local gen2 = rtk.Image.icon('gear_l'):scale(120,120,22,7) -- increase the size of the image
+--local gen_p = rtk.Image.icon('gen_p'):scale(120,120,22,7) -- increase the size of the image
 local bulb = rtk.Image.icon('bulb1'):scale(120,120,22,7) -- increase the size of the image
 local bulb2 = rtk.Image.icon('bulb2'):scale(120,120,22,7) -- increase the size of the image
 local bulb_en = rtk.Image.icon('bulb_en'):scale(120,120,22,7) -- increase the size of the image
 
-local on = rtk.Image.icon('on'):scale(120,120,22,6) -- increase the size of the image
-local off = rtk.Image.icon('off'):scale(120,120,22,6) -- increase the size of the image
-local onof = rtk.Image.icon('onof'):scale(120,120,22,6) -- increase the size of the image
+local on = rtk.Image.icon('on'):scale(120,120,22,7) -- increase the size of the image
+local off = rtk.Image.icon('off'):scale(120,120,22,7) -- increase the size of the image
+local onof = rtk.Image.icon('onof'):scale(120,120,22,7) -- increase the size of the image
 
 local onm = rtk.Image.icon('onm'):scale(120,120,22,7) -- increase the size of the image
 
@@ -136,10 +146,10 @@ local vbox2 = container:add(rtk.VBox{y=50,padding=5,x=wnd.w/2-50})
 
 local vbox = container:add(rtk.VBox{})
 
-hb_o = vbox:add(rtk.VBox{y=60,x=10,spacing=2,padding=25})
+hb_o = vbox:add(rtk.HBox{y=60,x=10,spacing=2,padding=25})
 color_b_hb = "#3a3a3a"
 
-bt2_btgen = hb_o:add(rtk.HBox{})
+bt2_btgen = hb_o:add(rtk.HBox{w=base_wight_button})
 
 local button2 = bt2_btgen:add(rtk.Button{
     gradient=3,
@@ -150,6 +160,7 @@ local button2 = bt2_btgen:add(rtk.Button{
     tagged=true,
     icon=on,
     h=29,
+    w=base_wight_button,
     halign='center',
     label='Auto Apply',
     
@@ -158,7 +169,7 @@ local button2 = bt2_btgen:add(rtk.Button{
     
     
 local btn_generate = bt2_btgen:add(rtk.Button{
-    gradient=3,
+    gradient=4,
     color=generate_color_current,
     spacing=2,
     padding=4,
@@ -199,7 +210,7 @@ local button_adv = hb_o:add(rtk.Button{
         tagged=true,
         icon=bulb,
         h=29,
-        w=94,
+        w=base_wight_button,
         halign='center',
         label='Advanced',
 
@@ -254,7 +265,8 @@ button2.onclick = function(self, event)
         self.current_icon = off
         func_on = false
         btn_generate:show()
-        btn_generate:animate{'w', dst=85, duration=0.2,"out-bounce"}
+        btn_generate:animate{'w', dst=68, duration=0.2,"out-bounce"}
+        button2:animate{'w', dst=26, duration=0.2,"out-bounce"}
         
     else --вкл
         self.state = "on"
@@ -263,7 +275,8 @@ button2.onclick = function(self, event)
         self.current_icon = on
         func_on = true
         self:attr('gradient', 3)
-        btn_generate:animate{'w', dst=15, duration=0.3,"out-bounce"}
+        button2:animate{'w', dst=base_wight_button, duration=0.2,"out-bounce"}
+        btn_generate:animate{'w', dst=15, duration=0.2,"out-bounce"}
            :after(function()
                return btn_generate:hide()
             end)
@@ -295,8 +308,8 @@ button2.onmouseenter = function(self, event)
 
 end
 
-
-local button_str = hb_o:add(rtk.Button{
+local leg_notes=hb_o:add(rtk.VBox{})
+local button_str = leg_notes:add(rtk.Button{
     color=legato_color_current,
     gradient=3,
     spacing=2,
@@ -304,11 +317,39 @@ local button_str = hb_o:add(rtk.Button{
     font=font,
     tagged=true,
     icon=leg,
-    w=94,
+    w=base_wight_button,
     halign='center',
-    label='Legato'
+    label='Legato',
+    h=29,
     })
+    
+local new_color = makeDarker("#4a544d", -0.5)
 
+local hb_stac_leg = leg_notes:add(rtk.HBox{h=1.1})
+slid_length = hb_stac_leg:add(rtk.Slider{
+  w=base_wight_button/10,
+  thumbcolor='transparent',
+  color=new_color,
+  thumsize=1,
+  h=1.1,
+  min=0,
+  max=100,
+  step=1,
+  value=100,
+  tracksize=2,
+  
+})
+
+-- Обработчик изменения слайдера
+slid_length.onchange = function(self, event)
+    amount = self.value / -120
+    local new_color = makeDarker("#4a544d", amount)
+    self:attr('color', new_color)
+end
+
+
+
+slid_length:show()  
 button_str.state = "on"
 button_str.onclick = function(self, event)
     if self.state == "on" then
@@ -316,11 +357,23 @@ button_str.onclick = function(self, event)
         self:attr('color', legato_color_pressed)
         extendNotesFlag = true
         p_run()
+        slid_length:show() 
+        slid_length:animate{'w', dst=base_wight_button, duration=0.1, easing="in-quad"}
+        
     else
         self.state = "on"
         self:attr('color', legato_color_current)
         extendNotesFlag = false
         p_run()
+        slid_length:animate{'w', dst=base_wight_button/10, duration=0.1, easing="out-quad"}
+        :after(function()
+            local function jopa()
+               slid_length:hide()
+            end
+            return jopa()
+         end)
+        
+        
     end
 end
 
@@ -387,15 +440,18 @@ slider3.onmouseenter = function(self, event)
 end
 ]]
 
-local font="Trebuchet MS"
-local vert_b = vbox:add(rtk.VBox{x=10,y=30,spacing=2,padding=25})
+local slider_line = vbox:add(rtk.VBox{y=27,spacing=2,padding=25})
 
-local b_up = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=up,halign='center',w=94,'Up'})
-local b_down = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=down,halign='center',w=94,'Down'})
+local font="Trebuchet MS"
+local vert_b = vbox:add(rtk.HBox{x=10,spacing=2,padding=25})
+
+local b_up = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=up,halign='center',w=base_wight_button,'Up'})
+local b_down = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=down,halign='center',w=base_wight_button,'Down'})
 vert_b_line=vert_b:add(rtk.HBox{})
-local b_rand = vert_b_line:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=rand,halign='center',w=94,'Random'})
-local button = vert_b_line:add(rtk.Button{color=color_b_hb,gradient=3,spacing=5,padding=4,font=font,tagged=true,icon=oct,w=10,h=26,halign='center',label='0'})
+local b_rand = vert_b_line:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=rand,halign='center',w=base_wight_button,'Random'})
+local button = vert_b_line:add(rtk.Button{iconpos='left',color=color_b_hb,gradient=3,spacing=5,padding=4,font=font,tagged=true,icon=oct,w=10,h=26,halign='center',label='0'})
 button:hide()
+
 b_rand.onmousedown = function()
   b_rand:attr("icon", rnd)
 end
@@ -433,7 +489,7 @@ b_up.onclick=function()
     octave=0
     p_run()
     button:animate{'color', dst="#3a3a3a", duration=0.25}
-    button:animate{'w', dst=10, duration=0.15, easing='out-expo'}  
+    button:animate{'w', dst=15, duration=0.15, easing='out-expo'}  
        :after(function()
            local function after_button()
               button:hide()
@@ -474,6 +530,7 @@ b_rand.onclick=function()
     p_run()
     button:show()
     button:animate{'w', dst=45, duration=0.85, easing='out-expo'}
+    
     button:animate{'color', dst=modes_button_color_pressed, duration=0.55}
     button:attr("gradient", 3)
     button:attr("hover",true)
@@ -916,13 +973,6 @@ function CircleWidget:initialize(attrs, ...)
     self.currentRadius = 0
 end
 
-function makeDarker(color, amount)
-        local r, g, b = color:match("#(%x%x)(%x%x)(%x%x)")
-        r = math.floor(math.max(0, tonumber(r, 16) * (1 - amount)))
-        g = math.floor(math.max(0, tonumber(g, 16) * (1 - amount)))
-        b = math.floor(math.max(0, tonumber(b, 16) * (1 - amount)))
-        return string.format("#%02x%02x%02x", r, g, b)
-end
 function CircleWidget:_handle_draw(offx, offy, alpha, event)
     local calc = self.calc
     local x = offx + calc.x + calc.w / 2
@@ -1162,8 +1212,7 @@ local lastRoundedValue = nil
 
 
 
-local slider_line = vbox:add(rtk.VBox{y=35,x=10})
-circt1=slider_line:add(CircleWidget{x=80,y=10,ref='circle', w=130, h=130, borderFraction=0/11})
+circt1=slider_line:add(CircleWidget{x=6,ref='circle', w=130, h=130, borderFraction=0/11})
 
 
 local grid_values = {1920, 1280, 960, 640, 480, 320, 240, 160, 120, 80, 60}
