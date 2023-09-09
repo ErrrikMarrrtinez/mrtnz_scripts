@@ -47,6 +47,7 @@ local octave = 0 --взрыв октав
 local step_mode = 1 --чекснизу
 local velocity = 100
 local extendNotesFlag = false --легато
+local grid_values = {1920, 1280, 960, 640, 480, 320, 240, 160, 120, 80, 60}
 --[[
 ===step modes===
      1 - когда используется только grid
@@ -470,15 +471,17 @@ local box_second_advanced = vbox:add(rtk.HBox{})
 
 local slider_line = box_second_advanced:add(rtk.VBox{y=27,spacing=2,padding=25})
 
-local sliders_box_v = box_second_advanced:add(rtk.VBox{bg="#2a2a2a",border=advanced_color_pressed,spacing=2,padding=2,w=150,h=80,y=80})
+local sliders_box_v = box_second_advanced:add(rtk.VBox{bg="#242424",spacing=2,padding=3,w=150,h=100,y=65})
 
 slider_first=sliders_box_v:add(rtk.HBox{y=10})
 
 adv_thumb_size=5
 adv_track_size=7
 adv_color="#987654"
---advanced_color_pressed
+adv_thumbcolor="transparent"
 adv_slider_w=110
+adv_fontsize=16
+
 
 local slider_velocity = slider_first:add(rtk.Slider{
     thumbsize=adv_thumb_size,
@@ -488,39 +491,47 @@ local slider_velocity = slider_first:add(rtk.Slider{
     min=0,
     max=127,
     w=adv_slider_w,
+    thumbcolor=adv_thumbcolor,
 })
 
-vel_text=slider_first:add(rtk.Text{x=4,"VEL",y=-3})
+vel_text=slider_first:add(rtk.Text{fontsize=adv_fontsize,w=28,x=4,"VEL",y=-3})
 
 
 slider_velocity.onchange=function(self, event)
   if step_mode == 2 then  -- Проверяем, установлен ли нужный режим
-    if self.value == 0 then
-      vel_text:attr('text', 'VEL')
-    else
-      vel_text:attr('text', self.value)
-    end
+    vel_text:attr('text', self.value)
     velocity = self.value  -- Устанавливаем velocity равным текущему значению слайдера
     p_run()
   end
 end
 
 slider_velocity.onmousedown = function(self, event)
-    
+  -- Здесь можно добавить дополнительный код, если нужно
 end
 
-slider_velocity.onmouseup = function(self, event)
-    vel_text:attr('text', 'VEL')
+slider_velocity.onmouseenter = function(self, event)
+  if step_mode == 2 then  -- Проверяем, установлен ли нужный режим
+    vel_text:attr('text', self.value)
+  end
 end
+
+slider_velocity.onmouseleave = function(self, event)
+  if step_mode == 2 then  -- Проверяем, установлен ли нужный режим
+    vel_text:attr('text', 'VEL')
+  end
+end
+
+
+
 
 sliders_box_v:hide()
-slider_sec=sliders_box_v:add(rtk.HBox{y=10,halign='center'})
-step_text=slider_sec:add(rtk.Text{y=7,"STEP"})
+slider_sec=sliders_box_v:add(rtk.HBox{y=14,halign='center'})
+step_text=slider_sec:add(rtk.Text{fontsize=adv_fontsize,w=30,y=7,"STEP"})
 local slider_velocity2 = slider_sec:add(rtk.Slider{
     thumbsize=adv_thumb_size,
     tracksize=adv_track_size,
     color=adv_color,
-    x=4,
+    x=-1,
     w=adv_slider_w,
     ticksize=2,
     y=11,
@@ -528,7 +539,56 @@ local slider_velocity2 = slider_sec:add(rtk.Slider{
     min=1,
     max=6,
     ticks=true,
+    thumbcolor=adv_thumbcolor,
+    
 })
+slider_velocity2.onchange=function(self, event)
+  if step_mode == 2 then  -- Проверяем, установлен ли нужный режим
+    step_text:attr('text', self.value)
+    -- Здесь можно добавить код для обновления переменной, которая хранит значение этого слайдера
+    p_run()
+  end
+end
+
+slider_velocity2.onmousedown = function(self, event)
+  -- Здесь можно добавить дополнительный код, если нужно
+end
+
+
+slider_velocity2.onmouseenter = function(self, event)
+  if step_mode == 2 then  -- Проверяем, установлен ли нужный режим
+    step_text:attr('text', self.value)
+  end
+end
+
+slider_velocity2.onmouseleave = function(self, event)
+  if step_mode == 2 then  -- Проверяем, установлен ли нужный режим
+    step_text:attr('text', 'STEP')
+  end
+end
+
+slider_thr=sliders_box_v:add(rtk.HBox{y=40})
+local slider_velocitythr = slider_thr:add(rtk.Slider{
+    thumbsize=adv_thumb_size,
+    tracksize=adv_track_size,
+    color=adv_color,
+    step=1,
+    min=0,
+    max=110,
+    w=adv_slider_w,
+    thumbcolor=adv_thumbcolor,
+    value=0,
+    
+})
+rate_text=slider_thr:add(rtk.Text{w=28,x=4,fontsize=adv_fontsize,"RATE",y=-3})
+slider_velocitythr.onchange=function(self, event)
+  local index = math.floor(self.value / 10 + 0.5) + 1  -- округляем к ближайшему индексу
+  if index < 1 then index = 1 end  -- защита от выхода индекса за пределы массива
+  if index > #grid_values then index = #grid_values end
+  
+  grid_step = grid_values[index]  -- устанавливаем grid_step равным значению из таблицы
+  p_run()
+end
 
 local font="Trebuchet MS"
 local vert_b = vbox:add(rtk.HBox{x=10,spacing=2,padding=25})
@@ -1116,7 +1176,6 @@ reaper.Undo_BeginBlock()
 
 reaper.Undo_EndBlock("Create Arpeggio from Chords", -1)]]
 
-  
 local currentValue = 0
 CircleWidget = rtk.class('CircleWidget', rtk.Spacer)
 CircleWidget.register{
@@ -1133,6 +1192,13 @@ function CircleWidget:initialize(attrs, ...)
 end
 
 function CircleWidget:_handle_draw(offx, offy, alpha, event)
+
+    local sliderValueIndex = math.floor(slider_velocitythr.value / 10 + 0.5) + 1  -- округляем к ближайшему индексу
+    if sliderValueIndex < 1 then sliderValueIndex = 1 end  -- защита от выхода индекса за пределы массива
+    if sliderValueIndex > #grid_values then sliderValueIndex = #grid_values end
+    
+    
+    sliderValueIndex = sliderValueIndex + 1
     local calc = self.calc
     local x = offx + calc.x + calc.w / 2
     local y = offy + calc.y + calc.h / 2
@@ -1219,9 +1285,11 @@ function CircleWidget:_handle_draw(offx, offy, alpha, event)
         local ly = y + labelRadius * math.sin(angle)
         
         local isNearestLabel = math.abs(i - 1 - currentValue) < label_round
-        
-        if isNearestLabel then  -- здесь проверка на ближайшую метку
+        local isSliderLabel = i == sliderValueIndex
+        if isNearestLabel then  
             self:setcolor(label_color)
+        elseif isSliderLabel then  -- новая проверка
+            self:setcolor('orange')
         else
             self:setcolor('#8a8a8a')
         end
@@ -1236,25 +1304,27 @@ function CircleWidget:_handle_draw(offx, offy, alpha, event)
     local lineCount = #lineLengths  -- количество разных длин линий
     local totalLines = #labels  -- общее количество линий
     local lineAngleStep = 360 / totalLines  -- шаг угла для каждой линии
-
-for i = 1, totalLines do
-        local isNearestLabel = math.abs(i - 1 - currentValue) < label_round
-        
-        if isNearestLabel then  -- здесь проверка на ближайшую метку
-            self:setcolor(label_color)
-        else
-            self:setcolor('#8a8a8a')
-        end
-
-    local angle = math.rad(startAngle + lineAngleStep * (i - 1))
-    local lineLength = lineLengths[(i - 1) % lineCount + 1]  -- выбор длины линии
-    local x1 = x + (knobRadius - 5) * math.cos(angle)
-    local y1 = y + 1 + (knobRadius - 5) * math.sin(angle)
-    local x2 = x + (knobRadius - 5 - lineLength) * math.cos(angle)
-    local y2 = y + 1 + (knobRadius - 5 - lineLength) * math.sin(angle)
-
-    gfx.line(x1, y1, x2, y2, 1)
-end
+    
+    for i = 1, totalLines do
+            local isNearestLabel = math.abs(i - 1 - currentValue) < label_round
+            local isSliderLabel = i == sliderValueIndex
+            if isNearestLabel then  
+                self:setcolor(label_color)
+            elseif isSliderLabel then  -- новая проверка
+                self:setcolor('orange')
+            else
+                self:setcolor('#8a8a8a')
+            end
+    
+        local angle = math.rad(startAngle + lineAngleStep * (i - 1))
+        local lineLength = lineLengths[(i - 1) % lineCount + 1]  -- выбор длины линии
+        local x1 = x + (knobRadius - 5) * math.cos(angle)
+        local y1 = y + 1 + (knobRadius - 5) * math.sin(angle)
+        local x2 = x + (knobRadius - 5 - lineLength) * math.cos(angle)
+        local y2 = y + 1 + (knobRadius - 5 - lineLength) * math.sin(angle)
+    
+        gfx.line(x1, y1, x2, y2, 1)
+    end
 
     
 end
@@ -1373,8 +1443,6 @@ local lastRoundedValue = nil
 
 circt1=slider_line:add(CircleWidget{x=6,ref='circle', w=130, h=130, borderFraction=0/11})
 
-
-local grid_values = {1920, 1280, 960, 640, 480, 320, 240, 160, 120, 80, 60}
 function CircleWidget:onchange()
     if currentValue == 0 then
     local selected_pattern = {notes = {}}
