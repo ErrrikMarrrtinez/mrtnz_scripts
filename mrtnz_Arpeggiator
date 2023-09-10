@@ -28,6 +28,22 @@ modes_button_color_pressed = "#443433"
 knob_rate_label_color = "white"
 main_background_color = "#1a1a1a"
 
+advanced_color_main_sl_label="orange"
+
+adv_mode_bg_window = "#242424"
+
+
+adv_mode_x=-10
+adv_mode_y=67
+adv_mode_w=150
+adv_mode_h=100
+
+adv_thumb_size=5
+adv_track_size=7
+adv_color=advanced_color_main_sl_label
+adv_thumbcolor="transparent"
+adv_slider_w=110
+adv_fontsize=16
 
 
 
@@ -38,11 +54,11 @@ local wnd = rtk.Window{
 bg = main_background_color
 }
 
---local grid = 320 --размер основных нот
+local grid = 3840 --размер основных нот
 
 local mode = "down" --направление
 local grid_step = 240 --размер для шага step
-local step = 2 --шаг для отклонения grid_step, каждая step нота будет иметь длину grid_step
+local step = 3 --шаг для отклонения grid_step, каждая step нота будет иметь длину grid_step
 local octave = 0 --взрыв октав
 local step_mode = 1 --чекснизу
 local velocity = 100
@@ -246,6 +262,16 @@ slider_mod_advanced.onchange = function(self, event)
     --self:attr('disabled', true)
 end
 
+slider_mod_advanced.onmousewheel = function(self, event)
+    local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+    local c_val = tonumber(wheel_y) > 0 and self.value - self.step or self.value + self.step
+    self:attr('value', math.max(self.min, math.min(self.max, c_val)))
+    return true
+end
+
+
+
+
 
 button_adv.state = 1
 button_adv.current_icon = bulb
@@ -360,6 +386,13 @@ slid_length = hb_stac_leg:add(rtk.Slider{
   tracksize=2,
   
 })
+
+slid_length.onmousewheel = function(self, event)
+    local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+    local c_val = tonumber(wheel_y) > 0 and self.value - self.step-7 or self.value + self.step+7
+    self:attr('value', math.max(self.min, math.min(self.max, c_val)))
+    return true
+end
 local globalSliderValue = 100 
 slid_length.onchange = function(self, event)
   amount = self.value / -120
@@ -471,16 +504,10 @@ local box_second_advanced = vbox:add(rtk.HBox{})
 
 local slider_line = box_second_advanced:add(rtk.VBox{y=27,spacing=2,padding=25})
 
-local sliders_box_v = box_second_advanced:add(rtk.VBox{bg="#242424",spacing=2,padding=3,w=150,h=100,y=65})
+local sliders_box_v = box_second_advanced:add(rtk.VBox{bg=adv_mode_bg_window,spacing=2,padding=3,x=adv_mode_x,w=adv_mode_w,h=adv_mode_h,y=adv_mode_y})
 
 slider_first=sliders_box_v:add(rtk.HBox{y=10})
 
-adv_thumb_size=5
-adv_track_size=7
-adv_color="#987654"
-adv_thumbcolor="transparent"
-adv_slider_w=110
-adv_fontsize=16
 
 
 local slider_velocity = slider_first:add(rtk.Slider{
@@ -492,11 +519,17 @@ local slider_velocity = slider_first:add(rtk.Slider{
     max=127,
     w=adv_slider_w,
     thumbcolor=adv_thumbcolor,
+    value=100,
 })
 
 vel_text=slider_first:add(rtk.Text{fontsize=adv_fontsize,w=28,x=4,"VEL",y=-3})
 
-
+slider_velocity.onmousewheel = function(self, event)
+    local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+    local c_val = tonumber(wheel_y) > 0 and self.value - self.step or self.value + self.step
+    self:attr('value', math.max(self.min, math.min(self.max, c_val)))
+    return true
+end
 slider_velocity.onchange=function(self, event)
   if step_mode == 2 then  -- Проверяем, установлен ли нужный режим
     vel_text:attr('text', self.value)
@@ -536,24 +569,29 @@ local slider_velocity2 = slider_sec:add(rtk.Slider{
     ticksize=2,
     y=11,
     step=1,
-    min=1,
-    max=6,
+    min=2,
+    max=8,
     ticks=true,
     thumbcolor=adv_thumbcolor,
+    value=3,
     
 })
 slider_velocity2.onchange=function(self, event)
   if step_mode == 2 then  -- Проверяем, установлен ли нужный режим
     step_text:attr('text', self.value)
-    -- Здесь можно добавить код для обновления переменной, которая хранит значение этого слайдера
+    step=self.value
     p_run()
   end
 end
-
 slider_velocity2.onmousedown = function(self, event)
   -- Здесь можно добавить дополнительный код, если нужно
 end
-
+slider_velocity2.onmousewheel = function(self, event)
+    local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+    local c_val = tonumber(wheel_y) > 0 and self.value - self.step or self.value + self.step
+    self:attr('value', math.max(self.min, math.min(self.max, c_val)))
+    return true
+end
 
 slider_velocity2.onmouseenter = function(self, event)
   if step_mode == 2 then  -- Проверяем, установлен ли нужный режим
@@ -589,15 +627,20 @@ slider_velocitythr.onchange=function(self, event)
   grid_step = grid_values[index]  -- устанавливаем grid_step равным значению из таблицы
   p_run()
 end
-
+slider_velocitythr.onmousewheel = function(self, event)
+    local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+    local c_val = tonumber(wheel_y) > 0 and self.value - self.step-9 or self.value + self.step+9
+    self:attr('value', math.max(self.min, math.min(self.max, c_val)))
+    return true
+end
 local font="Trebuchet MS"
 local vert_b = vbox:add(rtk.HBox{x=10,spacing=2,padding=25})
 modes_button_wight = base_wight_button - 15
 
-local b_up = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=up,halign='center',w=base_wight_button,'Up'})
-local b_down = vert_b:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=down,halign='center',w=base_wight_button,'Down'})
+local b_up = vert_b:add(rtk.Button{cursor=rtk.mouse.cursors.HAND,pacing=5,padding=4,font=font,tagged=true,icon=up,halign='center',w=base_wight_button,'Up'})
+local b_down = vert_b:add(rtk.Button{cursor=rtk.mouse.cursors.HAND,spacing=5,padding=4,font=font,tagged=true,icon=down,halign='center',w=base_wight_button,'Down'})
 vert_b_line=vert_b:add(rtk.HBox{})
-local b_rand = vert_b_line:add(rtk.Button{spacing=5,padding=4,font=font,tagged=true,icon=rand,halign='center',w=base_wight_button,'Random'})
+local b_rand = vert_b_line:add(rtk.Button{cursor=rtk.mouse.cursors.HAND,spacing=5,padding=4,font=font,tagged=true,icon=rand,halign='center',w=base_wight_button,'Random'})
 local button = vert_b_line:add(rtk.Button{iconpos='left',color=color_b_hb,gradient=3,spacing=5,padding=4,font=font,tagged=true,icon=oct,w=10,h=26,halign='center',label='0'})
 button:hide()
 
@@ -1199,6 +1242,7 @@ function CircleWidget:_handle_draw(offx, offy, alpha, event)
     
     
     sliderValueIndex = sliderValueIndex + 1
+    
     local calc = self.calc
     local x = offx + calc.x + calc.w / 2
     local y = offy + calc.y + calc.h / 2
@@ -1279,21 +1323,25 @@ function CircleWidget:_handle_draw(offx, offy, alpha, event)
     label_color=knob_rate_label_color
     label_round = 0.5
     
+    --local sliderValueIndex = math.floor(self.value / 10) + 1  -- округляем вниз и прибавляем 1
+    
     for i, label in ipairs(labels) do
         local angle = math.rad(startAngle + stepAngle * (i - 1))
         local lx = x + labelRadius * math.cos(angle)
         local ly = y + labelRadius * math.sin(angle)
         
         local isNearestLabel = math.abs(i - 1 - currentValue) < label_round
-        local isSliderLabel = i == sliderValueIndex
-        if isNearestLabel then  
+        local isNearestSlider = i == sliderValueIndex  -- новая переменная, которая проверяет, является ли текущая метка ближайшей для слайдера
+    
+        if step_mode == 2 and isNearestSlider then
+            self:setcolor(advanced_color_main_sl_label)
+        elseif isNearestLabel then
             self:setcolor(label_color)
-        elseif isSliderLabel then  -- новая проверка
-            self:setcolor('orange')
         else
             self:setcolor('#8a8a8a')
         end
-        gfx.setfont(1, "Book Antiqua", 13)
+         --Book Antiqua
+        gfx.setfont(1, "Palatino Linotype", 15)
         gfx.x = lx - gfx.measurestr(label) / 2
         gfx.y = ly -9
         gfx.drawstr(label)
@@ -1306,15 +1354,16 @@ function CircleWidget:_handle_draw(offx, offy, alpha, event)
     local lineAngleStep = 360 / totalLines  -- шаг угла для каждой линии
     
     for i = 1, totalLines do
-            local isNearestLabel = math.abs(i - 1 - currentValue) < label_round
-            local isSliderLabel = i == sliderValueIndex
-            if isNearestLabel then  
-                self:setcolor(label_color)
-            elseif isSliderLabel then  -- новая проверка
-                self:setcolor('orange')
-            else
-                self:setcolor('#8a8a8a')
-            end
+        local isNearestLabel = math.abs(i - 1 - currentValue) < label_round
+        local isSliderLabel = i == sliderValueIndex  -- новая переменная
+        
+        if step_mode == 2 and isSliderLabel then  -- новая проверка
+            self:setcolor(advanced_color_main_sl_label)
+        elseif isNearestLabel then  
+            self:setcolor(label_color)
+        else
+            self:setcolor('#8a8a8a')
+        end
     
         local angle = math.rad(startAngle + lineAngleStep * (i - 1))
         local lineLength = lineLengths[(i - 1) % lineCount + 1]  -- выбор длины линии
@@ -1325,6 +1374,7 @@ function CircleWidget:_handle_draw(offx, offy, alpha, event)
     
         gfx.line(x1, y1, x2, y2, 1)
     end
+    
 
     
 end
@@ -1391,6 +1441,30 @@ CircleWidget.ondragmousemove = function(self, event, dragarg)
 end
 
 
+CircleWidget.onmousewheel = function(self, event)
+    local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+    wheel_y = tonumber(wheel_y)
+    
+    local step = 1  -- Шаг изменения. Можешь изменить, если нужно
+    local nearestLabel = math.floor(currentValue)
+
+    if wheel_y > 0 then
+        nearestLabel = nearestLabel - step
+    else
+        nearestLabel = nearestLabel + step
+    end
+
+    nearestLabel = math.max(0, math.min(11, nearestLabel))  -- 11 - максимальное значение
+    lastNearestLabel = nearestLabel
+    
+    currentValue = nearestLabel  -- Перемещаемся к ближайшей метке
+    local borderFraction = currentValue / 11  -- 11 - максимальное значение
+    self:attr('borderFraction', borderFraction)
+    self:onchange()  -- Если у тебя есть какая-то дополнительная логика при изменении значения
+    
+    return true
+end
+
 
 
 function math.sign(x)
@@ -1439,40 +1513,36 @@ end
 
 local lastRoundedValue = nil 
 
+function original_notes()
+      local selected_pattern = {notes = {}}
+      local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
+      local _, numNotes, _, _ = reaper.MIDI_CountEvts(take)
+      for i = 0, numNotes - 1 do
+        local _, selected, _, startppqpos, endppqpos, _, pitch, velocity = reaper.MIDI_GetNote(take, i)
+        if selected then
+          local position = startppqpos
+          local length = endppqpos - position
+          table.insert(selected_pattern.notes, {position = position, length = length, velocity = velocity, pitch = pitch})
+        end
+      end
+    local modify_pattern = load_notes("modify.json")
+    if compare_patterns(selected_pattern, modify_pattern) then
+      local original_pattern = load_notes("original.json")
+      delete_selected_notes(take)
+      for i, note in ipairs(original_pattern.notes) do
+        reaper.MIDI_InsertNote(take, true, false, note.position, note.position + note.length, 0, note.pitch, note.velocity, false)
+      end
+    else
+      save_notes_to_json("original.json")
+    end 
+end    
 
 
 circt1=slider_line:add(CircleWidget{x=6,ref='circle', w=130, h=130, borderFraction=0/11})
 
 function CircleWidget:onchange()
     if currentValue == 0 then
-    local selected_pattern = {notes = {}}
-    local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
-    local _, numNotes, _, _ = reaper.MIDI_CountEvts(take)
-    for i = 0, numNotes - 1 do
-      local _, selected, _, startppqpos, endppqpos, _, pitch, velocity = reaper.MIDI_GetNote(take, i)
-      if selected then
-        local position = startppqpos
-        local length = endppqpos - position
-        table.insert(selected_pattern.notes, {position = position, length = length, velocity = velocity, pitch = pitch})
-      end
-    end
-    
-    
-    local modify_pattern = load_notes("modify.json")
-    
-    
-    
-    if compare_patterns(selected_pattern, modify_pattern) then
-      local original_pattern = load_notes("original.json")
-      -- Удаляем текущие выделенные ноты
-      delete_selected_notes(take)
-      -- Вставляем ноты из original.json
-      for i, note in ipairs(original_pattern.notes) do
-        reaper.MIDI_InsertNote(take, true, false, note.position, note.position + note.length, 0, note.pitch, note.velocity, false)
-      end
-    else
-      save_notes_to_json("original.json")
-    end   
+        original_notes()
     else
         local step = math.floor(currentValue + 0.5)  -- Округляем до ближайшего целого
     
