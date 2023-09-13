@@ -230,6 +230,7 @@ local button_adv = advanced_slid_b:add(rtk.Button{
         w=base_wight_button,
         halign='center',
         label='Advanced',
+        z=1,
 
 })
 advanced_slider_slider=advanced_slid_b:add(rtk.VBox{h=1.1})
@@ -368,6 +369,7 @@ local button_str = leg_notes:add(rtk.Button{
     halign='center',
     label='Legato',
     h=29,
+    z=1,
     })
     
 local new_color = makeDarker("#4a544d", -0.5)
@@ -557,6 +559,7 @@ end
 
 
 
+
 sliders_box_v:hide()
 slider_sec=sliders_box_v:add(rtk.HBox{y=14,halign='center'})
 step_text=slider_sec:add(rtk.Text{fontsize=adv_fontsize,w=30,y=7,"STEP"})
@@ -604,6 +607,7 @@ slider_velocity2.onmouseleave = function(self, event)
     step_text:attr('text', 'STEP')
   end
 end
+
 
 slider_thr=sliders_box_v:add(rtk.HBox{y=40})
 local slider_velocitythr = slider_thr:add(rtk.Slider{
@@ -672,6 +676,8 @@ button_adv.onclick = function(self, event)
         self.current_icon = gen11
         step_mode=3
         sliders_box_v:hide()
+        circt1:hide()
+        vert_b:hide()
     else  -- третье состояние
         self.state = 1
         self:attr('icon', bulb)
@@ -686,6 +692,8 @@ button_adv.onclick = function(self, event)
          end)
          step_mode=1
          sliders_box_v:hide()
+         circt1:show()
+         vert_b:show()
     end
     slider_mod_advanced:attr('value', button_adv.state)
     slider_mod_advanced:attr('color', button_adv.color)
@@ -1046,6 +1054,7 @@ local function sortChord(chord, current_mode)
     end
   end)
 end
+
 local function createArpeggio(direction, g_length, alternateStep, alternateLength)
     local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
     if not take then return end
@@ -1471,12 +1480,43 @@ function math.sign(x)
     return x > 0 and 1 or x < 0 and -1 or 0
 end
 
+local flag_unselect = false
 
+function SelectNotesIfNoneSelected()
+  local midi_editor = reaper.MIDIEditor_GetActive()
+  if midi_editor ~= nil then
+    local take = reaper.MIDIEditor_GetTake(midi_editor)
+    if take ~= nil then
+      local firstSelectedNote = reaper.MIDI_EnumSelNotes(take, -1)
+      if firstSelectedNote == -1 then 
+        reaper.MIDI_SelectAll(take, true)
+        flag_unselect = true
+      else 
+        flag_unselect = false
+      end
+      
+    end
+  end
+end
 
+function unselect_all()
+  local trackCount = reaper.CountTracks(0)
+  for i = 0, trackCount - 1 do
+    local track = reaper.GetTrack(0, i)
+    local itemCount = reaper.CountTrackMediaItems(track)
+    for j = 0, itemCount - 1 do
+      local item = reaper.GetTrackMediaItem(track, j)
+      local take = reaper.GetActiveTake(item)
+      if take ~= nil then
+        reaper.MIDI_SelectAll(take, false)
+      end
+    end
+  end
+end
 
 
 function run()
-  
+  SelectNotesIfNoneSelected()
   local selected_pattern = {notes = {}}
   local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
   local _, numNotes, _, _ = reaper.MIDI_CountEvts(take)
@@ -1496,9 +1536,7 @@ function run()
   
   if compare_patterns(selected_pattern, modify_pattern) then
     local original_pattern = load_notes("original.json")
-    -- Удаляем текущие выделенные ноты
     delete_selected_notes(take)
-    -- Вставляем ноты из original.json
     for i, note in ipairs(original_pattern.notes) do
       reaper.MIDI_InsertNote(take, true, false, note.position, note.position + note.length, 0, note.pitch, note.velocity, false)
     end
@@ -1507,8 +1545,9 @@ function run()
     save_notes_to_json("original.json")
     createArpeggio(mode, grid, step, grid_step)
   end
-
-
+  if flag_unselect == true then
+    unselect_all()
+  end
 end
 
 local lastRoundedValue = nil 
@@ -1539,7 +1578,6 @@ end
 
 
 circt1=slider_line:add(CircleWidget{x=6,ref='circle', w=130, h=130, borderFraction=0/11})
-
 function CircleWidget:onchange()
     if currentValue == 0 then
         original_notes()
@@ -1560,5 +1598,4 @@ function CircleWidget:onchange()
     end
      
 end
-
 wnd:open()
