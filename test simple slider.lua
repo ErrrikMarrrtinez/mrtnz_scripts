@@ -272,155 +272,167 @@ end
 bg_all="#262422"
 
 base_w = 35
+base_w_slider=58
 spacing_1 = base_w/base_w
 local win = rtk.Window{bg="#1a1a1a",w=460, h=340}
 container_advanced_3=win:add(rtk.HBox{})
 
-local vbox = container_advanced_3:add(rtk.VBox{w=base_w,h=200,padding=20})
+local vbox = container_advanced_3:add(rtk.VBox{x=15,w=base_w, h=200, padding=20})
+local sliderGroups = {}
+local buttonNames = {'velocity', 'octave', 'gate', 'ratchet', 'rate'}
+local index_strip = 8
 
-local sliderGroup = vbox:add(SliderGroup{border='red',spacing=spacing_1,expand=1})
-local sliderGroup2 = vbox:add(SliderGroup{border='red',spacing=spacing_1,expand=1})
-local sliderGroup3 = vbox:add(SliderGroup{border='red',spacing=spacing_1,expand=1})
-local sliderGroup4 = vbox:add(SliderGroup{border='red',spacing=spacing_1,expand=1})
-local sliderGroup5 = vbox:add(SliderGroup{border='red',spacing=spacing_1,expand=1})
+local slider_and_buttons_modes=container_advanced_3:add(rtk.VBox{})
+local container_advanced_vb=slider_and_buttons_modes:add(rtk.HBox{})
+local slider_container_win=slider_and_buttons_modes:add(rtk.HBox{})
 
-
-local slider_h_group = vbox:add(rtk.HBox{border='red',spacing=spacing_1})
-
-
-local gavno = container_advanced_3:add(rtk.HBox{y=190,bg='red'})
-local slider_mod_velocity=gavno:add(rtk.Button{'velocity'})
-local slider_mod_octave=gavno:add(rtk.Button{'octave'})
-local slider_mod_gate=gavno:add(rtk.Button{'gate'})
-local slider_mod_ratchet=gavno:add(rtk.Button{'ratchet'})
-local slider_mod_rate=gavno:add(rtk.Button{'rate'})
-slider_mod_velocity.onclick = function()
-    sliderGroup:show()
-    sliderGroup2:hide()
-    sliderGroup3:hide()
-    sliderGroup4:hide()
-    sliderGroup5:hide()
+-- Функция для создания слайдера
+local function createSlider(group, params)
+    return group:add(SimpleSlider(params), {fillw=true})
 end
-slider_mod_octave.onclick = function()
+
+local function toggleGroups(activeIndex)
+    for i, group in ipairs(sliderGroups) do
+        if i == activeIndex then
+            group:show()
+        else
+            group:hide()
+        end
+    end
+end
+local isProgrammaticChange = false
+local slider_mode_win = slider_container_win:add(rtk.Slider{value=20,step=20, ticks=5,tracksize=4,thumbsize=1,thumbcolor='transparent',z=-5,w=base_w_slider*5,y=192})
+for i, name in ipairs(buttonNames) do
+    local sliderGroup = vbox:add(SliderGroup{spacing=spacing_1, expand=1})
     sliderGroup:hide()
-    sliderGroup2:show()
-    sliderGroup3:hide()
-    sliderGroup4:hide()
-    sliderGroup5:hide()
+    table.insert(sliderGroups, sliderGroup)
+    
+    local button = container_advanced_vb:add(rtk.Button{z=5, halign='center', spacing=2, padding=2, w=base_w_slider, label=name, y=190})
+    
+    button.onclick = (function(idx)
+        return function()
+            isProgrammaticChange = true
+            slider_mode_win:attr('value', idx * 20)
+            toggleGroups(idx)
+            isProgrammaticChange = false
+        end
+    end)(i)
 end
-slider_mod_gate.onclick = function()
-    sliderGroup:hide()
-    sliderGroup2:hide()
-    sliderGroup3:show()
-    sliderGroup4:hide()
-    sliderGroup5:hide()
+
+
+
+slider_mode_win.onchange = function(self, event)
+    if isProgrammaticChange then return end
+    isProgrammaticChange = true
+
+    local value = math.floor(self.value / 20 + 0.5) * 20
+
+    -- Проверяем, не равно ли значение 0
+    if value == 0 then
+        value = 20
+    end
+
+    self:attr('value', value)
+    local index = value / 20
+    toggleGroups(index)
+
+    isProgrammaticChange = false
 end
-slider_mod_ratchet.onclick = function()
-    sliderGroup:hide()
-    sliderGroup2:hide()
-    sliderGroup3:hide()
-    sliderGroup4:show()
-    sliderGroup5:hide()
+
+slider_mode_win.onmousewheel = function(self, event)
+    local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+    local c_val = tonumber(wheel_y) > 0 and self.value - self.step or self.value + self.step
+
+    if c_val >= self.max then
+        c_val = c_val - self.max + self.min
+    elseif c_val <= self.min then
+        c_val = c_val + self.max - self.min
+    end
+
+    -- Проверяем, не равно ли значение 0
+    if c_val == 0 then
+        c_val = 20
+    end
+
+    self:attr('value', c_val)
+    return true
 end
-slider_mod_rate.onclick = function()
-    sliderGroup:hide()
-    sliderGroup2:hide()
-    sliderGroup3:hide()
-    sliderGroup4:hide()
-    sliderGroup5:show()
-end
-local index_strip=8
+
+
+
+
+sliderGroups[1]:show()
+
+-- Создание слайдеров
 for _ = 1, index_strip do
-    local v_slider_velocity = sliderGroup:add(SimpleSlider{
-        w=base_w,
-        lhotzone=5,
-        font='Times',
-        min=1,
-        max=127,
-        value=0.79,
-        valign='down',
-        text_color="#ffffff",
-        halign='left',
-        w=base_w,
-        lhotzone=5,
-        rhotzone=5},
-        {fillw=true}
-        )
-        
-    local v_slider_octave = sliderGroup2:add(SimpleSlider{
-        color='#fafa6e',
-        w=base_w,
-        lhotzone=5,
-        font='Times',
-        min=-5,
-        max=5,
-        value=0.5,
-         target='center',
-        valign='down',
-        text_color="#ffffff",
-        halign='left',
-        w=base_w,
-        lhotzone=5,
-        rhotzone=5},
-        {fillw=true}
-    )
-    
-    local v_slider_gate = sliderGroup3:add(SimpleSlider{
-        color='#2a4858',
-        w=base_w,
-        lhotzone=5,
-        font='Times',
-        min={1, "%"},
-        max={100, "%"},
-        value=0.5,
-        valign='down',
-        text_color="#ffffff",
-        halign='left',
-        w=base_w,
-        lhotzone=5,
-        rhotzone=5},
-        {fillw=true}
-    )
-    local v_slider_ratchet = sliderGroup4:add(SimpleSlider{
-        color='#7E7A3E',
-        w=base_w,
-        lhotzone=5,
-        font='Times',
-        min=0, 
-        max=4,
-        value=0.5,
-        valign='down',
-        text_color="#ffffff",
-        halign='left',
-        w=base_w,
-        lhotzone=5,
-        rhotzone=5},
-        {fillw=true}
-    )
-    
-    local v_slider_rate = sliderGroup5:add(SimpleSlider{
-        color='#009a86',
-        w=base_w,
-        lhotzone=5,
-        font='Times',
-        min=1, 
-        max=12,
-        ticklabels={"1/2", "1/3", "1/4", "1/6", "1/8", "1/12", "1/16",  "1/24", "1/32", "1/48", "1/64"},
-        value=0.5,
-        valign='down',
-        text_color="#ffffff",
-        halign='left',
-        w=base_w,
-        lhotzone=5,
-        rhotzone=5},
-        {fillw=true}
-    )
-    sliderGroup2:hide()
-    sliderGroup3:hide()
-    sliderGroup4:hide()
-    sliderGroup5:hide()
-    
+    createSlider(sliderGroups[1], {w=base_w,
+    lhotzone=5,
+    font='Times',
+    min=1,
+    max=127,
+    value=0.79,
+    valign='down',
+    text_color="#ffffff",
+    halign='left',
+    w=base_w,
+    lhotzone=5,
+    rhotzone=5})  -- параметры для velocity
+    createSlider(sliderGroups[2], {color='#fafa6e',
+    w=base_w,
+    lhotzone=5,
+    font='Times',
+    min=-5,
+    max=5,
+    value=0.5,
+     target='center',
+    valign='down',
+    text_color="#ffffff",
+    halign='left',
+    w=base_w,
+    lhotzone=5,
+    rhotzone=5})  -- параметры для octave
+    createSlider(sliderGroups[3], {color='#2a4858',
+    w=base_w,
+    lhotzone=5,
+    font='Times',
+    min={1, "%"},
+    max={100, "%"},
+    value=0.5,
+    valign='down',
+    text_color="#ffffff",
+    halign='left',
+    w=base_w,
+    lhotzone=5})  -- параметры для gate
+    createSlider(sliderGroups[4], {color='#7E7A3E',
+    w=base_w,
+    lhotzone=5,
+    font='Times',
+    min=0, 
+    max=4,
+    value=0.5,
+    valign='down',
+    text_color="#ffffff",
+    halign='left',
+    w=base_w,
+    lhotzone=5,
+    rhotzone=5})  -- параметры для ratchet
+    createSlider(sliderGroups[5], {color='#009a86',
+    w=base_w,
+    lhotzone=5,
+    font='Times',
+    min=1, 
+    max=12,
+    ticklabels={"1/2", "1/3", "1/4", "1/6", "1/8", "1/12", "1/16",  "1/24", "1/32", "1/48", "1/64"},
+    value=0.5,
+    valign='down',
+    text_color="#ffffff",
+    halign='left',
+    w=base_w,
+    lhotzone=5,
+    rhotzone=5})  -- параметры для rate
 end
+
+
 
 
 --[[
