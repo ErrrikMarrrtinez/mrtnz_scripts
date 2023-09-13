@@ -73,19 +73,20 @@ local grid_values = {1920, 1280, 960, 640, 480, 320, 240, 160, 120, 80, 60}
 local step_grid = {
   { -- Для первого аккорда
     mode = "down",
-    {step = 1, grid_step = 480, velocity = 20, octave = -2, ratchet = 0},
-    {step = 2, grid_step = 480, velocity = 50, octave = -1, ratchet = 0},
-    {step = 3, grid_step = 240, velocity = 70, octave = 0, ratchet = 0},
-    {step = 4, grid_step = 960, velocity = 110, octave = 1, ratchet = 6},
+    {step = 1, grid_step = 480, velocity = 20, octave = -2, ratchet = 2, length = 100},
+    {step = 2, grid_step = 120, velocity = 50, octave = -1, ratchet = 0, length = 100},
+    {step = 3, grid_step = 240, velocity = 70, octave = 1, ratchet = 6, length = 100},
+    {step = 4, grid_step = 960, velocity = 110, octave = 2, ratchet = 1, length = 100},
   },
   { -- Для второго аккорда
     mode = "up",
-    {step = 1, grid_step = 960, velocity = 25, octave = 0, ratchet = 6},
-    {step = 2, grid_step = 240, velocity = 35, octave = 1, ratchet = 3},
-    {step = 3, grid_step = 480, velocity = 45, octave = -1, ratchet = 8},
-    {step = 4, grid_step = 240, velocity = 65, octave = 0, ratchet = 5},
+    {step = 1, grid_step = 960, velocity = 25, octave = 0, ratchet = 0, length = 55},
+    {step = 2, grid_step = 240, velocity = 35, octave = 1, ratchet = 0, length = 70},
+    {step = 3, grid_step = 480, velocity = 45, octave = -1, ratchet = 0, length = 40},
+    {step = 4, grid_step = 240, velocity = 65, octave = 0, ratchet = 0, length = 25},
   },
 }
+
 
 
 
@@ -1172,7 +1173,7 @@ local function createArpeggio(direction, g_length, alternateStep, alternateLengt
             for i = 1, #current_step_grid do
                 step_counts[i] = 0
             end
-
+            local current_length = 100  -- значение по умолчанию
             local current_octave = 0 -- Эта переменная будет хранить текущую октаву
             while insert_position < end_position do
                 local note_length = g_length
@@ -1186,6 +1187,7 @@ local function createArpeggio(direction, g_length, alternateStep, alternateLengt
                     end
                 elseif step_mode == 3 then
                         local matched = false
+                        
                         if current_step_grid then
                             for i = #current_step_grid, 1, -1 do
                                 step_counts[i] = step_counts[i] + 1
@@ -1199,10 +1201,13 @@ local function createArpeggio(direction, g_length, alternateStep, alternateLengt
                                     if v.octave then
                                         current_octave = v.octave
                                     end
-                                    if v.ratchet then  -- Новая строка для параметра ratchet
+                                    if v.ratchet then
                                         ratchet = v.ratchet
                                     else
                                         ratchet = 1
+                                    end
+                                    if v.length then
+                                        current_length = v.length
                                     end
                                     matched = true
                                     break
@@ -1232,15 +1237,21 @@ local function createArpeggio(direction, g_length, alternateStep, alternateLengt
 
                 -- Взрыв октавы
                 local pitch = chord[note].pitch + (current_octave * 12)
+                local new_note_length = note_length * (current_length / 100)
+                if current_length == 0 then
+                    new_note_length = note_length
+                else
+                    new_note_length = note_length * (current_length / 100)
+                end
                 if octave ~= 0 then
                     local randomOctaveShift = math.random(-octave, octave) * 12
                     pitch = pitch + randomOctaveShift -- Смещение на случайное количество октав вверх или вниз, сохраняя тон
                 end
-                    if ratchet and ratchet > 1 then
-                        splitNote(take, insert_position, insert_position + note_length, pitch, current_velocity, ratchet)
-                    else
-                        reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, pitch, current_velocity, false)
-                    end
+               if ratchet and ratchet > 1 then
+                   splitNote(take, insert_position, insert_position + new_note_length, pitch, current_velocity, ratchet)
+               else
+                   reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + new_note_length, 0, pitch, current_velocity, false)
+               end
                 
                 reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, pitch, current_velocity, false)
                 insert_position = insert_position + note_length
