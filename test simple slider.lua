@@ -66,7 +66,7 @@ function SimpleSlider:_handle_draw(offx, offy, alpha, event)
         -- Отрисовка полосы середины
         gfx.a = 0.4
         gfx.rect(x, y + half_h, calc.w, 1)
-        
+    
         if calc.value > 0.4 then
             draw_y = y + half_h - draw_h
         else
@@ -74,14 +74,10 @@ function SimpleSlider:_handle_draw(offx, offy, alpha, event)
         end
     end
     
-    
     local adjustedColor = adjustBrightness(calc.color, calc.value - 0.5)
     self:setcolor(adjustedColor)
     gfx.a = 1.0
     gfx.rect(x, draw_y, calc.w, draw_h)
-    
-    
-    
     
     local fmt = type(self.min) == "table" and "%d%%" or "%d"
     local text_to_display
@@ -269,13 +265,62 @@ function SliderGroup:_handle_dragmousemove(event, arg)
     arg.lasty = event.y
 end
 
+
+function SimpleSlider:_handle_mousewheel(event)
+    local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+    local delta = tonumber(wheel_y)
+    
+    -- Считаем шаг, если не задан
+    local step = self.step or ((tonumber(self.max) - tonumber(self.min)) / 100)
+    local new_val = self.value + (delta > 0 and -step or step)
+    
+    -- Убеждаемся, что новое значение входит в допустимый диапазон
+    new_val = math.max(tonumber(self.min), math.min(tonumber(self.max), new_val))
+
+    -- Обновляем значение
+    self:attr('value', new_val)
+    
+    return true
+end
+
+
+
+
 bg_all="#262422"
 
 base_w = 35
 base_w_slider=58
 spacing_1 = base_w/base_w
 local win = rtk.Window{bg="#1a1a1a",w=460, h=340}
-container_advanced_3=win:add(rtk.HBox{})
+
+
+local hibox_buttons_browser=win:add(rtk.HBox{})
+local chord_add = hibox_buttons_browser:add(rtk.Button{"chord1"})
+
+local tabCount = 1  -- Счетчик вкладок
+local tabs = {}  -- Список вкладок
+
+local function createNewChordTab()
+    tabCount = tabCount + 1
+    local newButton = hibox_buttons_browser:add(rtk.Button{padding=2, "Chord " .. tabCount})
+    
+    local newContainer = rtk.HBox{padding=25, border='red'}
+    container_advanced_3:add(newContainer)
+    
+    newButton.onclick = function()
+        for _, tab in ipairs(tabs) do
+            tab:hide()
+        end
+        newContainer:show()
+    end
+    
+    table.insert(tabs, newContainer)
+end
+
+chord_add.onclick = createNewChordTab
+
+
+container_advanced_3=win:add(rtk.HBox{padding=25,border='red'})
 
 local vbox = container_advanced_3:add(rtk.VBox{x=15,w=base_w, h=200, padding=20})
 local sliderGroups = {}
