@@ -73,23 +73,18 @@ local grid_values = {1920, 1280, 960, 640, 480, 320, 240, 160, 120, 80, 60}
 local step_grid = {
   { -- Для первого аккорда
     mode = "down",
-
-      {step = 1, grid_step = 480, velocity = 20, octave = -2},
-      {step = 2, grid_step = 480, velocity = 50, octave = -1},
-      {step = 3, grid_step = 240, velocity = 70, octave = 0},
-      {step = 4, grid_step = 960, velocity = 110, octave = 1},
-
+    {step = 1, grid_step = 480, velocity = 20, octave = -2, ratchet = 0},
+    {step = 2, grid_step = 480, velocity = 50, octave = -1, ratchet = 0},
+    {step = 3, grid_step = 240, velocity = 70, octave = 0, ratchet = 0},
+    {step = 4, grid_step = 960, velocity = 110, octave = 1, ratchet = 6},
   },
   { -- Для второго аккорда
     mode = "up",
-
-      {step = 1, grid_step = 960, velocity = 25, octave = 0},
-      {step = 2, grid_step = 240, velocity = 35, octave = 1},
-      {step = 3, grid_step = 480, velocity = 45, octave = -1},
-      {step = 4, grid_step = 240, velocity = 65, octave = 0},
-
+    {step = 1, grid_step = 960, velocity = 25, octave = 0, ratchet = 6},
+    {step = 2, grid_step = 240, velocity = 35, octave = 1, ratchet = 3},
+    {step = 3, grid_step = 480, velocity = 45, octave = -1, ratchet = 8},
+    {step = 4, grid_step = 240, velocity = 65, octave = 0, ratchet = 5},
   },
-
 }
 
 
@@ -1043,7 +1038,38 @@ function extendNotesToEndOfBar(startZone, endZone)
   reaper.MIDI_Sort(take)
 end
 
+local function splitNote(take, start, endpos, pitch, vel, ratchet)
+  local len = endpos - start
+  local div = math.floor(len / ratchet)
+  local mult_len = start + div * ratchet
 
+  for j = 1, ratchet do
+    reaper.MIDI_InsertNote(
+      take, 
+      true, 
+      false, 
+      start + (j-1) * div, 
+      start + (j-1) * div + div, 
+      0, 
+      pitch, 
+      vel,
+      false
+    )
+    if mult_len < endpos then
+      reaper.MIDI_InsertNote(
+        take, 
+        true, 
+        false, 
+        start + div * ratchet, 
+        endpos, 
+        0, 
+        pitch, 
+        vel,
+        false
+      )
+    end
+  end
+end
 
 local function sortChord(chord, current_mode)
   table.sort(chord, function(a, b)
@@ -1159,25 +1185,30 @@ local function createArpeggio(direction, g_length, alternateStep, alternateLengt
                         note_length = alternateLength
                     end
                 elseif step_mode == 3 then
-                    local matched = false
-                    if current_step_grid then
-                        for i = #current_step_grid, 1, -1 do
-                            step_counts[i] = step_counts[i] + 1
-                            local v = current_step_grid[i]
-
-                            if step_counts[i] % v.step == 0 then
-                                note_length = v.grid_step
-                                if v.velocity then
-                                    current_velocity = v.velocity
+                        local matched = false
+                        if current_step_grid then
+                            for i = #current_step_grid, 1, -1 do
+                                step_counts[i] = step_counts[i] + 1
+                                local v = current_step_grid[i]
+                
+                                if step_counts[i] % v.step == 0 then
+                                    note_length = v.grid_step
+                                    if v.velocity then
+                                        current_velocity = v.velocity
+                                    end
+                                    if v.octave then
+                                        current_octave = v.octave
+                                    end
+                                    if v.ratchet then  -- Новая строка для параметра ratchet
+                                        ratchet = v.ratchet
+                                    else
+                                        ratchet = 1
+                                    end
+                                    matched = true
+                                    break
                                 end
-                                if v.octave then
-                                    current_octave = v.octave
-                                end
-                                matched = true
-                                break
                             end
                         end
-                    end
 
                     if not matched and step_mode ~= 3 then
                         current_velocity = velocity
@@ -1205,9 +1236,15 @@ local function createArpeggio(direction, g_length, alternateStep, alternateLengt
                     local randomOctaveShift = math.random(-octave, octave) * 12
                     pitch = pitch + randomOctaveShift -- Смещение на случайное количество октав вверх или вниз, сохраняя тон
                 end
+                    if ratchet and ratchet > 1 then
+                        splitNote(take, insert_position, insert_position + note_length, pitch, current_velocity, ratchet)
+                    else
+                        reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, pitch, current_velocity, false)
+                    end
+                
                 reaper.MIDI_InsertNote(take, true, false, insert_position, insert_position + note_length, 0, pitch, current_velocity, false)
                 insert_position = insert_position + note_length
-
+                
                 if current_mode ~= "random" then
                     note = (note % #chord) + 1
                 end
