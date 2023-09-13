@@ -1,25 +1,28 @@
 package.path = string.format('%s/Scripts/rtk/1/?.lua;%s?.lua;', reaper.GetResourcePath(), entrypath)
 require 'rtk'
+main_line_color = "#55666f"
 SimpleSlider = rtk.class('SimpleSlider', rtk.Spacer)
 SimpleSlider.register{
-    -- Value of the slider from 0.0 to 1.0, initialized in the middle.
-    value = rtk.Attribute{default=0.5},
-    -- Color of the slider
-    color = rtk.Attribute{type='color', default='orange'},
-
-    -- Parent class attribute overrides
-    --
-    -- Don't let it get too small, also acts as a default width.
+    value = rtk.Attribute{default=0.5}, --середина
+    color = rtk.Attribute{type='color', default=main_line_color},
     minw = 5,
-    -- Override base class height so we default to the full height of parent container
     h = 1.0,
-    -- Allow taking focus when clicked
     autofocus = true,
+    min = rtk.Attribute{default=0},
+    max = rtk.Attribute{default=1},
+    ticklabels = rtk.Attribute{default=nil},
+    text_color = rtk.Attribute{type='color', default='#ffffff'},
+    align = rtk.Attribute{default='center'},
+    valign = rtk.Attribute{default='top'},
+    font = rtk.Attribute{default='arial'},
+    fontsize = rtk.Attribute{default=18},
+    target = rtk.Attribute{default='top'},
 }
 
 function SimpleSlider:initialize(attrs, ...)
     rtk.Spacer.initialize(self, attrs, SimpleSlider.attributes.defaults, ...)
 end
+
 
 function SimpleSlider:set_from_mouse_y(y)
     local h = self.calc.h - (y - self.clienty)
@@ -32,17 +35,91 @@ function SimpleSlider:set_from_mouse_y(y)
 end
 
 
+function adjustBrightness(color, amount)
+    local r, g, b = color:match("#(%x%x)(%x%x)(%x%x)")
+    r = math.floor(math.min(255, math.max(0, tonumber(r, 16) * (1 + amount))))
+    g = math.floor(math.min(255, math.max(0, tonumber(g, 16) * (1 + amount))))
+    b = math.floor(math.min(255, math.max(0, tonumber(b, 16) * (1 + amount))))
+    return string.format("#%02x%02x%02x", r, g, b)
+end
+
 function SimpleSlider:_handle_draw(offx, offy, alpha, event)
     local calc = self.calc
     local x = offx + calc.x
     local y = offy + calc.y
     local h = calc.h * calc.value
+    
     self:setcolor(calc.color)
     gfx.a = 0.2
     gfx.rect(x, y, calc.w, calc.h)
+    
+    if self.target == 'top' then
+        draw_h = h
+        draw_y = y + calc.h - h
+    elseif self.target == 'down' then
+        draw_h = h
+        draw_y = y
+    elseif self.target == 'center' then
+        local half_h = calc.h / 2
+        draw_h = math.abs(h - half_h)
+        
+        -- Отрисовка полосы середины
+        gfx.a = 0.4
+        gfx.rect(x, y + half_h, calc.w, 1)
+        
+        if calc.value > 0.4 then
+            draw_y = y + half_h - draw_h
+        else
+            draw_y = y + half_h
+        end
+    end
+    
+    
+    local adjustedColor = adjustBrightness(calc.color, calc.value - 0.5)
+    self:setcolor(adjustedColor)
     gfx.a = 1.0
-    gfx.rect(x, y + calc.h - h, calc.w, h)
+    gfx.rect(x, draw_y, calc.w, draw_h)
+    
+    
+    
+    
+    local fmt = type(self.min) == "table" and "%d%%" or "%d"
+    local text_to_display
+    if self.ticklabels then
+        local index = math.floor(calc.value * (#self.ticklabels - 1) + 0.5) + 1
+        text_to_display = self.ticklabels[index]
+    elseif type(self.min) == "table" and type(self.max) == "table" then
+        text_to_display = string.format("%d%%", math.floor(calc.value * 100))
+    else
+        local min = type(self.min) == "table" and self.min[1] or self.min
+        local max = type(self.max) == "table" and self.max[1] or self.max
+        text_to_display = string.format("%d", math.floor(min + calc.value * (max - min)))
+    end
+
+    -- Устанавливаем параметры шрифта
+    gfx.setfont(1, self.font, self.fontsize)
+
+    -- Вычисляем размеры текста
+    local str_w, str_h = gfx.measurestr(text_to_display)
+    
+    if self.align == 'left' then
+        gfx.x = x
+    elseif self.align == 'center' then
+        gfx.x = x + (calc.w - str_w) / 2
+    else
+        gfx.x = x + calc.w - str_w
+    end
+
+    if self.valign == 'top' then
+        gfx.y = y
+    else
+        gfx.y = y + calc.h - str_h
+    end
+    
+    self:setcolor(self.text_color)
+    gfx.drawstr(text_to_display)
 end
+
 SliderGroup = rtk.class('SliderGroup', rtk.HBox)
 
 
@@ -143,13 +220,10 @@ function SliderGroup:apply_mode(current_slider, mode)
 end
 
 
--- Добавим переменную для хранения значения первого зажатого слайдера
 local first_slider_value = nil
 
--- Добавляем переменную для хранения "фокусного" слайдера
 local focused_slider = nil
 
--- ... (оставшаяся часть кода)
 
 function SliderGroup:_handle_dragstart(event, x, y, t)
     first_slider_value = nil
@@ -195,16 +269,467 @@ function SliderGroup:_handle_dragmousemove(event, arg)
     arg.lasty = event.y
 end
 
+bg_all="#262422"
+
+base_w = 35
+spacing_1 = base_w/base_w
+local win = rtk.Window{bg="#1a1a1a",w=460, h=340}
+container_advanced_3=win:add(rtk.HBox{})
+
+local vbox = container_advanced_3:add(rtk.VBox{w=base_w,h=200,padding=20})
+
+local sliderGroup = vbox:add(SliderGroup{border='red',spacing=spacing_1,expand=1})
+local sliderGroup2 = vbox:add(SliderGroup{border='red',spacing=spacing_1,expand=1})
+local sliderGroup3 = vbox:add(SliderGroup{border='red',spacing=spacing_1,expand=1})
+local sliderGroup4 = vbox:add(SliderGroup{border='red',spacing=spacing_1,expand=1})
+local sliderGroup5 = vbox:add(SliderGroup{border='red',spacing=spacing_1,expand=1})
 
 
+local slider_h_group = vbox:add(rtk.HBox{border='red',spacing=spacing_1})
 
-    local win = rtk.Window{w=600, h=400, padding=20}
-    local group = win:add(SliderGroup{spacing=1, expand=1})
-    for _ = 1, 10 do
-        -- Use a 5px hotzone on either side to compensate for the 10px box spacing,
-        -- so it allows the user to click inside the spacing and still get a response.
-        group:add(SimpleSlider{lhotzone=5, rhotzone=5}, {fillw=true})
+
+local gavno = container_advanced_3:add(rtk.HBox{y=190,bg='red'})
+local slider_mod_velocity=gavno:add(rtk.Button{'velocity'})
+local slider_mod_octave=gavno:add(rtk.Button{'octave'})
+local slider_mod_gate=gavno:add(rtk.Button{'gate'})
+local slider_mod_ratchet=gavno:add(rtk.Button{'ratchet'})
+local slider_mod_rate=gavno:add(rtk.Button{'rate'})
+slider_mod_velocity.onclick = function()
+    sliderGroup:show()
+    sliderGroup2:hide()
+    sliderGroup3:hide()
+    sliderGroup4:hide()
+    sliderGroup5:hide()
+end
+slider_mod_octave.onclick = function()
+    sliderGroup:hide()
+    sliderGroup2:show()
+    sliderGroup3:hide()
+    sliderGroup4:hide()
+    sliderGroup5:hide()
+end
+slider_mod_gate.onclick = function()
+    sliderGroup:hide()
+    sliderGroup2:hide()
+    sliderGroup3:show()
+    sliderGroup4:hide()
+    sliderGroup5:hide()
+end
+slider_mod_ratchet.onclick = function()
+    sliderGroup:hide()
+    sliderGroup2:hide()
+    sliderGroup3:hide()
+    sliderGroup4:show()
+    sliderGroup5:hide()
+end
+slider_mod_rate.onclick = function()
+    sliderGroup:hide()
+    sliderGroup2:hide()
+    sliderGroup3:hide()
+    sliderGroup4:hide()
+    sliderGroup5:show()
+end
+local index_strip=8
+for _ = 1, index_strip do
+    local v_slider_velocity = sliderGroup:add(SimpleSlider{
+        w=base_w,
+        lhotzone=5,
+        font='Times',
+        min=1,
+        max=127,
+        value=0.79,
+        valign='down',
+        text_color="#ffffff",
+        halign='left',
+        w=base_w,
+        lhotzone=5,
+        rhotzone=5},
+        {fillw=true}
+        )
+        
+    local v_slider_octave = sliderGroup2:add(SimpleSlider{
+        color='#fafa6e',
+        w=base_w,
+        lhotzone=5,
+        font='Times',
+        min=-5,
+        max=5,
+        value=0.5,
+         target='center',
+        valign='down',
+        text_color="#ffffff",
+        halign='left',
+        w=base_w,
+        lhotzone=5,
+        rhotzone=5},
+        {fillw=true}
+    )
+    
+    local v_slider_gate = sliderGroup3:add(SimpleSlider{
+        color='#2a4858',
+        w=base_w,
+        lhotzone=5,
+        font='Times',
+        min={1, "%"},
+        max={100, "%"},
+        value=0.5,
+        valign='down',
+        text_color="#ffffff",
+        halign='left',
+        w=base_w,
+        lhotzone=5,
+        rhotzone=5},
+        {fillw=true}
+    )
+    local v_slider_ratchet = sliderGroup4:add(SimpleSlider{
+        color='#7E7A3E',
+        w=base_w,
+        lhotzone=5,
+        font='Times',
+        min=0, 
+        max=4,
+        value=0.5,
+        valign='down',
+        text_color="#ffffff",
+        halign='left',
+        w=base_w,
+        lhotzone=5,
+        rhotzone=5},
+        {fillw=true}
+    )
+    
+    local v_slider_rate = sliderGroup5:add(SimpleSlider{
+        color='#009a86',
+        w=base_w,
+        lhotzone=5,
+        font='Times',
+        min=1, 
+        max=12,
+        ticklabels={"1/2", "1/3", "1/4", "1/6", "1/8", "1/12", "1/16",  "1/24", "1/32", "1/48", "1/64"},
+        value=0.5,
+        valign='down',
+        text_color="#ffffff",
+        halign='left',
+        w=base_w,
+        lhotzone=5,
+        rhotzone=5},
+        {fillw=true}
+    )
+    sliderGroup2:hide()
+    sliderGroup3:hide()
+    sliderGroup4:hide()
+    sliderGroup5:hide()
+    
+end
+
+
+--[[
+    slider_group_w = SimpleSlider.w
+    slider_h_group:add(CircleWidget2{bg="#363a3b",ref='circle', w=base_w, h=40, borderFraction=0/11})
+    color_slider="#A0522D"
+    local button1 = buttonGroup:add(rtk.Button{
+    color=thumb_color_first,
+    gradient=0,
+    halign='center',
+    w=base_w,
+    label='0'},
+    {fillw=true})
+    
+    
+    
+    local dragging = false
+    local prevX, prevY = nil, nil
+    local dragAccumulatorX = 0
+    local dragAccumulatorY = 0
+    local dragThreshold = 25  -- порог для изменения значения
+    local currentValue = 0  -- Предположительно начальное значение
+    
+    
+    button1.onmouseenter = function(self, event)
+      button1:attr("cursor", rtk.mouse.cursors.REAPER_POINTER_LEFTRIGHT)
     end
-    win:open()
+    button1.onmouseleave = function(self, event)
+      button1:attr("cursor", rtk.mouse.cursors.UNDEFINED )
+    end
+    button1.ondragstart = function(self, event, x, y, t)
+        dragging = true
+        prevX, prevY = x, y
+        button1:attr("cursor", rtk.mouse.cursors.REAPER_MARKER_HORIZ)
+        return true
+    end
+    button1.onmouseup = function(self, event)
+     button1.onmouseleave = function(self, event)
+       button1:attr("cursor", rtk.mouse.cursors.UNDEFINED )
+     end
+     button1:attr("cursor", rtk.mouse.cursors.UNDEFINED )
+    end
+     
+    button1.ondragend = function(self, event, dragarg)
+        dragging = false
+        prevX, prevY = nil, nil
+        button1:attr("cursor", rtk.mouse.cursors.UNDEFINED)
+    
+
+    end
+    
+    button1.onmousewheel = function(self, event)
+        local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+        wheel_y = tonumber(wheel_y)
+        currentValue = wheel_y > 0 and currentValue - 1 or currentValue + 1
+        currentValue = math.max(-4, math.min(4, currentValue))
+        button1:attr('label', tostring(currentValue))
+    
+        return true
+    end
+    
+    button1.ondragmousemove = function(self, event, dragarg)
+        if dragging and prevX and prevY then
+            local deltaX = event.x - prevX
+            
+            dragAccumulatorX = dragAccumulatorX + deltaX
+    
+            if math.abs(dragAccumulatorX) > dragThreshold then
+                if deltaX > 0 then
+                    currentValue = currentValue + 1  -- Изменено здесь
+                elseif deltaX < 0 then
+                    currentValue = currentValue - 1  -- Изменено здесь
+                end
+    
+                dragAccumulatorX = 0
+                
+                currentValue = math.max(-4, math.min(4, currentValue))
+                button1:attr('label', tostring(currentValue))
+                prevX, prevY = event.x, event.y
+            end
+        end
+    end
+    
+    
+    thumb_color_first = '#4E5557'
+    thumb_color_second = '##55666f'
+    
+    
+    
+    local currentValue_2 = 0
+    CircleWidget2 = rtk.class('CircleWidget2', rtk.Spacer)
+    CircleWidget2.register{
+        radius = rtk.Attribute{default=33},
+        borderFraction = rtk.Attribute{default=1},
+        color = rtk.Attribute{type='color', default='red'},
+        borderColor = rtk.Attribute{type='color', default='gray'},
+        borderwidth = rtk.Attribute{default=5},
+        currentValue_2 = rtk.Attribute{default=0},  -- Добавляем атрибут currentValue
+    }
+    
+    function CircleWidget2:initialize(attrs, ...)
+        rtk.Spacer.initialize(self, attrs, CircleWidget2.attributes.defaults, ...)
+        self.alpha2 = 0.07
+        self.currentRadius = 0
+        self.currentValue_2 = 0  -- Добавьте это для каждого индивидуального кноба
+    end
+    
+    
+    function makeDarker(color, amount)
+            local r, g, b = color:match("#(%x%x)(%x%x)(%x%x)")
+            r = math.floor(math.max(0, tonumber(r, 16) * (1 - amount)))
+            g = math.floor(math.max(0, tonumber(g, 16) * (1 - amount)))
+            b = math.floor(math.max(0, tonumber(b, 16) * (1 - amount)))
+            return string.format("#%02x%02x%02x", r, g, b)
+    end
+    currentLabelText = ""
+    
+    function CircleWidget2:_handle_draw(offx, offy, alpha, event)
+        local calc = self.calc
+        local x = offx + calc.x + calc.w / 2
+        local y = offy + calc.y + calc.h / 2
+        local knobRadius = calc.radius + self.currentRadius
+    
+        local startAngle = 90
+        local labels = {"0","1/2", "1/3", "1/4", "1/6", "1/8", "1/12", "1/16",  "1/24", "1/32", "1/48", "1/64"}
+        local stepAngle = 360 / #labels
+        local borderAngle = startAngle + 360 * (self.currentValue_2 / (#labels - 1))
+        local thickness = 12
+        local alpha2 = 0.07
+        local lineLengths = {5}
+        local lineCount = #lineLengths
+        local totalLines = #labels
+        local lineAngleStep = 360 / totalLines
+        for i = 1, totalLines do
+            local isNearestLabel = math.abs(i - 1 - self.currentValue_2) < 0.5
+            if isNearestLabel then
+                self:setcolor('#f3f3f3')
+            else
+                self:setcolor('#1a1a1a')
+            end
+            bl = 15
+            local angle = math.rad(startAngle + lineAngleStep * (i - 1))
+            local lineLength = lineLengths[(i - 1) % lineCount + 1]
+            local x1 = x + (knobRadius - bl) * math.cos(angle)  -- было - 8
+            local y1 = y + 1 + (knobRadius - bl) * math.sin(angle)  -- было - 8
+            local x2 = x + (knobRadius - bl - lineLength ) * math.cos(angle)  -- было - 1 - lineLength
+            local y2 = y + 1 + (knobRadius - bl - lineLength ) * math.sin(angle)  -- было - 1 - lineLength
+    
+            gfx.line(x1, y1, x2, y2, 2)
+        end
+        
+        
+        for i = 1, 9 do
+            local alpha = alpha2 * (10 - i)
+            gfx.set(0, 0, 0, alpha)
+            gfx.circle(x - 1, y + 4, knobRadius - calc.borderwidth - 25 + i, 15, true)
+        end
+    
+        local outerRadius = math.floor(knobRadius - calc.borderwidth - 12)
+        local steps = 20
+        local stepSize = outerRadius / steps
+        local color = thumb_color_first
+        
+        for i = steps, 1, -1 do
+            self:setcolor(color)
+            gfx.circle(x, y, stepSize * i, 290, true)
+            color = makeDarker(color, -0.03)
+        end
+        
+        local markerAngle = math.rad(startAngle + stepAngle * self.currentValue_2)
+        local markerDistance = knobRadius - 35
+        local markerX = x + markerDistance * math.cos(markerAngle)
+        local markerY = y + markerDistance * math.sin(markerAngle)
+        markerX = math.floor(markerX + 0.5)
+        markerY = math.floor(markerY + 0.5)
+        bl = 3
+        color = makeDarker(color, 0.065)
+        self:setcolor(color)
+        gfx.circle(markerX, markerY, 10, bl, true)
+    
+        local markerAngle = math.rad(startAngle + stepAngle * self.currentValue_2)
+        local markerDistance = knobRadius - 25
+        local markerX = x + markerDistance * math.cos(markerAngle)
+        local markerY = y + markerDistance * math.sin(markerAngle)
+        markerX = math.floor(markerX + 0.5)
+        markerY = math.floor(markerY + 0.5)
+        bl = 3
+        color = makeDarker(color, 0.6)
+        self:setcolor(color)
+        gfx.circle(markerX, markerY, 4, bl, true)
+    
+        local innerRadius = math.floor((knobRadius - calc.borderwidth - 12) * 0.75)
+        local steps = 10
+        local stepSize = innerRadius / steps
+        local color = thumb_color_second
+        
+        for i = steps, 1, -1 do
+            self:setcolor(color)
+            gfx.circle(x, y, stepSize * i, 290, true)
+            color = makeDarker(color, 0.0001)
+        end
+        
+        local roundedValue = math.round(self.currentValue_2)
+        local labelText = labels[roundedValue + 1]
+        
+        
+        self:setcolor('#FFFFFF')  -- Измените на нужный вам цвет
+        gfx.setfont(1, "Gadget", 15)
+        gfx.x = x - gfx.measurestr(labelText) / 2
+        gfx.y = y + 21
+        gfx.drawstr(labelText)
+    
+    
+    end
+    
+    
+        
+    
+    local dragging = false
+    local prevY = nil
+    local sensitivity = 0.07  -- уменьшено для большей чувствительности
+    CircleWidget2.currentValue_2 = 0
+    
+    CircleWidget2.ondragstart = function(self, event, x, y, t)
+        dragging = true
+        prevY = y
+        self.alpha2 = 0.02
+        
+    
+        return true
+    end
+    
+    CircleWidget2.ondragend = function(self, event, dragarg)
+        self:attr('cursor', nil)
+        dragging = false
+        prevY = nil
+        self.alpha2 = 0.07
+    
+    end
+    
+    local lerpSpeed = 0.01
+    local lastNearestLabel = nil
+    
+    
+    
+    
+    CircleWidget2.ondragmousemove = function(self, event, dragarg)
+        if dragging and prevY then
+            local delta = event.y - prevY
+            self.currentValue_2 = self.currentValue_2 - delta * sensitivity
+            self.currentValue_2 = math.max(0, math.min(11, self.currentValue_2))  -- 11 - максимальное значение
+    
+            local nearestLabel = math.floor(self.currentValue_2)
+            if self.currentValue_2 - nearestLabel >= 0.5 then
+                nearestLabel = nearestLabel + 1
+            end
+    
+            if lastNearestLabel and math.abs(nearestLabel - lastNearestLabel) > 1 then
+                nearestLabel = lastNearestLabel + math.sign(nearestLabel - lastNearestLabel)
+            end
+    
+            lastNearestLabel = nearestLabel
+    
+            local threshold = 0.01
+    
+            if math.abs(self.currentValue_2 - nearestLabel) < threshold then
+                self.currentValue_2 = nearestLabel
+            else
+                self.currentValue_2 = self.currentValue_2 * (1 - lerpSpeed) + nearestLabel * lerpSpeed
+            end
+    
+            local borderFraction = self.currentValue_2 / 11  -- 11 - максимальное значение
+            self:attr('borderFraction', borderFraction)
+    
+            prevY = event.y
+        end
+    end
+    
+    CircleWidget2.onmousewheel = function(self, event)
+        local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+        wheel_y = tonumber(wheel_y)
+        
+        local step = 1  -- Шаг изменения. Можешь изменить, если нужно
+        local nearestLabel = math.floor(self.currentValue_2)  -- Добавлено self.
+    
+        if wheel_y > 0 then
+            nearestLabel = nearestLabel - step
+        else
+            nearestLabel = nearestLabel + step
+        end
+    
+        nearestLabel = math.max(0, math.min(11, nearestLabel))  -- 11 - максимальное значение
+        self.lastNearestLabel = nearestLabel  -- Добавлено self.
+        
+        self.currentValue_2 = nearestLabel  -- Перемещаемся к ближайшей метке. Добавлено self.
+        local borderFraction = self.currentValue_2 / 11  -- 11 - максимальное значение. Добавлено self.
+        self:attr('borderFraction', borderFraction)
+    
+        return true
+    end
+    
+    
+    
+    function math.sign(x)
+        return x > 0 and 1 or x < 0 and -1 or 0
+    end
+    
+]]
+
+win:open()
 
 
