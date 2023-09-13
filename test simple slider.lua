@@ -67,7 +67,7 @@ function SimpleSlider:_handle_draw(offx, offy, alpha, event)
         gfx.a = 0.4
         gfx.rect(x, y + half_h, calc.w, 1)
     
-        if calc.value > 0.4 then
+        if calc.value >= 0.5 then  -- Изменил условие с "> 0.4" на ">= 0.5"
             draw_y = y + half_h - draw_h
         else
             draw_y = y + half_h
@@ -115,6 +115,7 @@ function SimpleSlider:_handle_draw(offx, offy, alpha, event)
     self:setcolor(self.text_color)
     gfx.drawstr(text_to_display)
 end
+
 
 SliderGroup = rtk.class('SliderGroup', rtk.HBox)
 
@@ -291,192 +292,225 @@ bg_all="#262422"
 base_w = 35
 base_w_slider=58
 spacing_1 = base_w/base_w
-local win = rtk.Window{bg="#1a1a1a",w=460, h=340}
+local win = rtk.Window{bg="#1a1a1a",w=450, h=340}
 
 
 local hibox_buttons_browser=win:add(rtk.HBox{})
-local chord_add = hibox_buttons_browser:add(rtk.Button{"chord1"})
+local chord_add = hibox_buttons_browser:add(rtk.Button{"+"})
 
-local tabCount = 1  -- Счетчик вкладок
-local tabs = {}  -- Список вкладок
+local buttonCount = 1
+local boxes = {} -- Сюда будем складывать все созданные VBox'ы
 
-local function createNewChordTab()
-    tabCount = tabCount + 1
-    local newButton = hibox_buttons_browser:add(rtk.Button{padding=2, "Chord " .. tabCount})
+local function createNewBox()
+    container_advanced_3=win:add(rtk.HBox{padding=20})
     
-    local newContainer = rtk.HBox{padding=25, border='red'}
-    container_advanced_3:add(newContainer)
+    local vbox = container_advanced_3:add(rtk.VBox{x=15,w=base_w, h=200, padding=25})
+    local sliderGroups = {}
+    local buttonNames = {'velocity', 'octave', 'gate', 'ratchet', 'rate'}
+    local index_strip = 8
     
+    local slider_and_buttons_modes=container_advanced_3:add(rtk.VBox{})
+    local container_advanced_vb=slider_and_buttons_modes:add(rtk.HBox{})
+    local slider_container_win=slider_and_buttons_modes:add(rtk.HBox{})
+    
+    -- Функция для создания слайдера
+    local function createSlider(group, params)
+        return group:add(SimpleSlider(params), {fillw=true})
+    end
+    
+    local function toggleGroups(activeIndex)
+        for i, group in ipairs(sliderGroups) do
+            if i == activeIndex then
+                group:show()
+            else
+                group:hide()
+            end
+        end
+    end
+    local isProgrammaticChange = false
+    local slider_mode_win = slider_container_win:add(rtk.Slider{value=20,step=20, ticks=5,tracksize=4,thumbsize=1,thumbcolor='transparent',z=-5,w=base_w_slider*5,y=192})
+    
+    
+    for i, name in ipairs(buttonNames) do
+        local sliderGroup = vbox:add(SliderGroup{spacing=spacing_1, expand=1})
+        sliderGroup:hide()
+        table.insert(sliderGroups, sliderGroup)
+        
+        local button = container_advanced_vb:add(rtk.Button{z=5, halign='center', spacing=2, padding=2, w=base_w_slider, label=name, y=190})
+        
+        
+        -- Добавлено: перемещение слайдера при прокрутке колеса мыши
+        button.onmousewheel = function(self, event)
+            local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+            wheel_y = tonumber(wheel_y)
+            local c_val = (wheel_y > 0) and slider_mode_win.value - slider_mode_win.step or slider_mode_win.value + slider_mode_win.step
+        
+            if c_val > slider_mode_win.max then
+                c_val = slider_mode_win.min
+            elseif c_val < slider_mode_win.min then
+                c_val = slider_mode_win.max
+            end
+        
+            slider_mode_win:attr('value', c_val)
+            return true
+        end
+        
+        button.onclick = (function(idx)
+            return function()
+                isProgrammaticChange = true
+                slider_mode_win:attr('value', idx * 20)
+                toggleGroups(idx)
+                isProgrammaticChange = false
+                slider_mode_win:focus()
+            end
+        end)(i)
+    end
+    
+    
+    
+    slider_mode_win.onchange = function(self, event)
+        if isProgrammaticChange then return end
+        isProgrammaticChange = true
+    
+        local value = math.floor(self.value / 20 + 0.5) * 20
+    
+        -- Проверяем, не равно ли значение 0
+        if value == 0 then
+            value = 20
+        end
+    
+        self:attr('value', value)
+        local index = value / 20
+        toggleGroups(index)
+    
+        isProgrammaticChange = false
+    end
+    
+    slider_mode_win.onmousewheel = function(self, event)
+        local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+        wheel_y = tonumber(wheel_y)
+        local c_val = (wheel_y > 0) and self.value - self.step or self.value + self.step
+    
+        if c_val > self.max then
+            c_val = self.min
+        elseif c_val < self.min then
+            c_val = self.max
+        end
+    
+        -- Проверяем, не равно ли значение 0
+        if c_val == 0 then
+            c_val = 20
+        end
+    
+        self:attr('value', c_val)
+        return true
+    end
+    
+    
+    
+    
+    
+    
+    
+    sliderGroups[1]:show()
+    
+    -- Создание слайдеров
+    for _ = 1, index_strip do
+        createSlider(sliderGroups[1], {w=base_w,
+        lhotzone=5,
+        font='Times',
+        min=1,
+        max=127,
+        value=0.79,
+        valign='down',
+        text_color="#ffffff",
+        halign='left',
+        w=base_w,
+        lhotzone=5,
+        rhotzone=5})  -- параметры для velocity
+        createSlider(sliderGroups[2], {color='#fafa6e',
+        w=base_w,
+        lhotzone=5,
+        font='Times',
+        min=-5,
+        max=5,
+        value=0.5,
+         target='center',
+        valign='down',
+        text_color="#ffffff",
+        halign='left',
+        w=base_w,
+        lhotzone=5,
+        rhotzone=5})  -- параметры для octave
+        createSlider(sliderGroups[3], {color='#2a4858',
+        w=base_w,
+        lhotzone=5,
+        font='Times',
+        min={1, "%"},
+        max={100, "%"},
+        value=0.5,
+        valign='down',
+        text_color="#ffffff",
+        halign='left',
+        w=base_w,
+        lhotzone=5})  -- параметры для gate
+        createSlider(sliderGroups[4], {color='#7E7A3E',
+        w=base_w,
+        lhotzone=5,
+        font='Times',
+        min=0, 
+        max=10,
+        value=0.1,
+        valign='down',
+        text_color="#ffffff",
+        halign='left',
+        w=base_w,
+        lhotzone=5,
+        rhotzone=5})  -- параметры для ratchet
+        createSlider(sliderGroups[5], {color='#009a86',
+        w=base_w,
+        lhotzone=5,
+        font='Times',
+        min=1, 
+        max=12,
+        ticklabels={"1/2", "1/3", "1/4", "1/6", "1/8", "1/12", "1/16",  "1/24", "1/32", "1/48", "1/64"},
+        value=0.5,
+        valign='down',
+        text_color="#ffffff",
+        halign='left',
+        w=base_w,
+        lhotzone=5,
+        rhotzone=5})  -- параметры для rate
+    end
+    return container_advanced_3
+end
+
+
+
+
+
+chord_add.onclick = function()
+    -- Скрыть все существующие боксы
+    for _, box in pairs(boxes) do
+        box:hide()
+    end
+
+    local newButton = hibox_buttons_browser:add(rtk.Button{"chord" .. buttonCount})
+    local newBox = createNewBox()
+    boxes[buttonCount] = newBox
+
+    -- Показать только что созданный бокс
+    newBox:show()
+
     newButton.onclick = function()
-        for _, tab in ipairs(tabs) do
-            tab:hide()
+        for _, box in pairs(boxes) do
+            box:hide()
         end
-        newContainer:show()
+        newBox:show()
     end
     
-    table.insert(tabs, newContainer)
+    buttonCount = buttonCount + 1
 end
-
-chord_add.onclick = createNewChordTab
-
-
-container_advanced_3=win:add(rtk.HBox{padding=25,border='red'})
-
-local vbox = container_advanced_3:add(rtk.VBox{x=15,w=base_w, h=200, padding=20})
-local sliderGroups = {}
-local buttonNames = {'velocity', 'octave', 'gate', 'ratchet', 'rate'}
-local index_strip = 8
-
-local slider_and_buttons_modes=container_advanced_3:add(rtk.VBox{})
-local container_advanced_vb=slider_and_buttons_modes:add(rtk.HBox{})
-local slider_container_win=slider_and_buttons_modes:add(rtk.HBox{})
-
--- Функция для создания слайдера
-local function createSlider(group, params)
-    return group:add(SimpleSlider(params), {fillw=true})
-end
-
-local function toggleGroups(activeIndex)
-    for i, group in ipairs(sliderGroups) do
-        if i == activeIndex then
-            group:show()
-        else
-            group:hide()
-        end
-    end
-end
-local isProgrammaticChange = false
-local slider_mode_win = slider_container_win:add(rtk.Slider{value=20,step=20, ticks=5,tracksize=4,thumbsize=1,thumbcolor='transparent',z=-5,w=base_w_slider*5,y=192})
-for i, name in ipairs(buttonNames) do
-    local sliderGroup = vbox:add(SliderGroup{spacing=spacing_1, expand=1})
-    sliderGroup:hide()
-    table.insert(sliderGroups, sliderGroup)
-    
-    local button = container_advanced_vb:add(rtk.Button{z=5, halign='center', spacing=2, padding=2, w=base_w_slider, label=name, y=190})
-    
-    button.onclick = (function(idx)
-        return function()
-            isProgrammaticChange = true
-            slider_mode_win:attr('value', idx * 20)
-            toggleGroups(idx)
-            isProgrammaticChange = false
-        end
-    end)(i)
-end
-
-
-
-slider_mode_win.onchange = function(self, event)
-    if isProgrammaticChange then return end
-    isProgrammaticChange = true
-
-    local value = math.floor(self.value / 20 + 0.5) * 20
-
-    -- Проверяем, не равно ли значение 0
-    if value == 0 then
-        value = 20
-    end
-
-    self:attr('value', value)
-    local index = value / 20
-    toggleGroups(index)
-
-    isProgrammaticChange = false
-end
-
-slider_mode_win.onmousewheel = function(self, event)
-    local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
-    local c_val = tonumber(wheel_y) > 0 and self.value - self.step or self.value + self.step
-
-    if c_val >= self.max then
-        c_val = c_val - self.max + self.min
-    elseif c_val <= self.min then
-        c_val = c_val + self.max - self.min
-    end
-
-    -- Проверяем, не равно ли значение 0
-    if c_val == 0 then
-        c_val = 20
-    end
-
-    self:attr('value', c_val)
-    return true
-end
-
-
-
-
-sliderGroups[1]:show()
-
--- Создание слайдеров
-for _ = 1, index_strip do
-    createSlider(sliderGroups[1], {w=base_w,
-    lhotzone=5,
-    font='Times',
-    min=1,
-    max=127,
-    value=0.79,
-    valign='down',
-    text_color="#ffffff",
-    halign='left',
-    w=base_w,
-    lhotzone=5,
-    rhotzone=5})  -- параметры для velocity
-    createSlider(sliderGroups[2], {color='#fafa6e',
-    w=base_w,
-    lhotzone=5,
-    font='Times',
-    min=-5,
-    max=5,
-    value=0.5,
-     target='center',
-    valign='down',
-    text_color="#ffffff",
-    halign='left',
-    w=base_w,
-    lhotzone=5,
-    rhotzone=5})  -- параметры для octave
-    createSlider(sliderGroups[3], {color='#2a4858',
-    w=base_w,
-    lhotzone=5,
-    font='Times',
-    min={1, "%"},
-    max={100, "%"},
-    value=0.5,
-    valign='down',
-    text_color="#ffffff",
-    halign='left',
-    w=base_w,
-    lhotzone=5})  -- параметры для gate
-    createSlider(sliderGroups[4], {color='#7E7A3E',
-    w=base_w,
-    lhotzone=5,
-    font='Times',
-    min=0, 
-    max=4,
-    value=0.5,
-    valign='down',
-    text_color="#ffffff",
-    halign='left',
-    w=base_w,
-    lhotzone=5,
-    rhotzone=5})  -- параметры для ratchet
-    createSlider(sliderGroups[5], {color='#009a86',
-    w=base_w,
-    lhotzone=5,
-    font='Times',
-    min=1, 
-    max=12,
-    ticklabels={"1/2", "1/3", "1/4", "1/6", "1/8", "1/12", "1/16",  "1/24", "1/32", "1/48", "1/64"},
-    value=0.5,
-    valign='down',
-    text_color="#ffffff",
-    halign='left',
-    w=base_w,
-    lhotzone=5,
-    rhotzone=5})  -- параметры для rate
-end
-
 
 
 
