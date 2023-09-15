@@ -23,6 +23,7 @@ function SimpleSlider:initialize(attrs, ...)
     rtk.Spacer.initialize(self, attrs, SimpleSlider.attributes.defaults, ...)
 end
 
+rtk.add_image_search_path('../../MrtnzScripts/NotePast/images', 'dark')
 
 function SimpleSlider:set_from_mouse_y(y)
     local h = self.calc.h - (y - self.clienty)
@@ -168,6 +169,7 @@ function SliderGroup:apply_mode(current_slider, mode)
             local slider = child[1]
             if rtk.isa(slider, SimpleSlider) then
                 local newValue = i % 2 == 0 and even_value or odd_value
+                updateConsoleMessage(slider)
                 slider:animate{
                     attr = 'value',
                     dst = newValue,
@@ -214,6 +216,21 @@ function SliderGroup:apply_mode(current_slider, mode)
             }
         end
     end
+end
+function updateConsoleMessage(slider)
+    -- Найти текущую вкладку и порядковый номер слайдера
+    local tabName = "Unknown Tab"  -- Получить текущую вкладку
+    local sliderIndex = "Unknown Index"  -- Получить порядковый номер слайдера
+    local sliderType = "Unknown Type"  -- Получить тип слайдера
+
+    -- Здесь должен быть код, который определяет tabName, sliderIndex и sliderType
+
+    -- Используем getDisplayValue для получения текущего значения
+    local displayValue = slider:getDisplayValue()
+    
+    -- Вывести сообщение в консоль
+    reaper.ShowConsoleMsg(string.format("Вкладка: %s\nНомер: %s\nТип: %s\nЗначение: %s\n", 
+                                       tabName, sliderIndex, sliderType, displayValue))
 end
 
 
@@ -284,7 +301,21 @@ function SimpleSlider:_handle_mousewheel(event)
     return true
 end
 
-
+function SimpleSlider:getDisplayValue()
+    local calc = self.calc
+    local text_to_display
+    if self.ticklabels then
+        local index = math.floor(calc.value * (#self.ticklabels - 1) + 0.5) + 1
+        text_to_display = self.ticklabels[index]
+    elseif type(self.min) == "table" and type(self.max) == "table" then
+        text_to_display = string.format("%d%%", math.floor(calc.value * 100))
+    else
+        local min = type(self.min) == "table" and self.min[1] or self.min
+        local max = type(self.max) == "table" and self.max[1] or self.max
+        text_to_display = string.format("%d", math.floor(min + calc.value * (max - min)))
+    end
+    return text_to_display
+end
 
 
 bg_all="#262422"
@@ -292,30 +323,56 @@ bg_all="#262422"
 base_w = 35
 base_w_slider=58
 spacing_1 = base_w/base_w
-local win = rtk.Window{bg="#1a1a1a",w=450, h=340}
+base_w_for_chord_tabs=60
+big_w_for_chord_tabs = base_w_for_chord_tabs + 20
+base_h_for_chord_tabs=25
+base_color = "#3a3a3a"
+pressed_color_tabs = "#08737f"
+--[[
+velocity_color_slider
+octave_color_slider
+gate_color_slider
+ratchet_color_slider
+rate_color_slider
 
+
+]]
+
+local win = rtk.Window{bg="#1a1a1a",w=450, h=340}
+local lastCreatedButtonNumber = 0
 
 local hibox_buttons_browser=win:add(rtk.HBox{})
 local chord_add = hibox_buttons_browser:add(rtk.Button{"+"})
+local line_add = win:add(rtk.Button{y=200,"plus"})
 
 local buttonCount = 1
 local boxes = {} -- Сюда будем складывать все созданные VBox'ы
+local container_advanced_3
+local index_strip = 8
 
 local function createNewBox()
+   
     container_advanced_3=win:add(rtk.HBox{padding=20})
-    
     local vbox = container_advanced_3:add(rtk.VBox{x=15,w=base_w, h=200, padding=25})
     local sliderGroups = {}
     local buttonNames = {'velocity', 'octave', 'gate', 'ratchet', 'rate'}
-    local index_strip = 8
+    
     
     local slider_and_buttons_modes=container_advanced_3:add(rtk.VBox{})
     local container_advanced_vb=slider_and_buttons_modes:add(rtk.HBox{})
     local slider_container_win=slider_and_buttons_modes:add(rtk.HBox{})
     
     -- Функция для создания слайдера
-    local function createSlider(group, params)
-        return group:add(SimpleSlider(params), {fillw=true})
+    local function createSlider(group, params, sliderIndex, sliderType, chordIndex)
+        local slider = group:add(SimpleSlider(params), {fillw=true})
+        slider.onmouseup = function(self, event, arg, x, y, z)
+            -- Получаем реальное значение слайдера через вашу функцию getDisplayValue
+            local displayValue = self:getDisplayValue()
+    
+            -- Используем reaper для вывода информации в консоль
+            local msg = string.format("Вкладка Chord %d:\n%d. %s %s\n", chordIndex, sliderIndex, sliderType, displayValue)
+            reaper.ShowConsoleMsg(msg)
+        end
     end
     
     local function toggleGroups(activeIndex)
@@ -332,7 +389,7 @@ local function createNewBox()
     
     
     for i, name in ipairs(buttonNames) do
-        local sliderGroup = vbox:add(SliderGroup{spacing=spacing_1, expand=1})
+        local sliderGroup = vbox:add(SliderGroup{spacing=spacing_1, expand=2})
         sliderGroup:hide()
         table.insert(sliderGroups, sliderGroup)
         
@@ -415,7 +472,7 @@ local function createNewBox()
     sliderGroups[1]:show()
     
     -- Создание слайдеров
-    for _ = 1, index_strip do
+    for i = 1, index_strip do
         createSlider(sliderGroups[1], {w=base_w,
         lhotzone=5,
         font='Times',
@@ -427,7 +484,7 @@ local function createNewBox()
         halign='left',
         w=base_w,
         lhotzone=5,
-        rhotzone=5})  -- параметры для velocity
+        rhotzone=5},i, "velocity",lastCreatedButtonNumber)  -- параметры для velocity
         createSlider(sliderGroups[2], {color='#fafa6e',
         w=base_w,
         lhotzone=5,
@@ -441,7 +498,7 @@ local function createNewBox()
         halign='left',
         w=base_w,
         lhotzone=5,
-        rhotzone=5})  -- параметры для octave
+        rhotzone=5},i, "octave",lastCreatedButtonNumber) -- параметры для octave
         createSlider(sliderGroups[3], {color='#2a4858',
         w=base_w,
         lhotzone=5,
@@ -453,20 +510,20 @@ local function createNewBox()
         text_color="#ffffff",
         halign='left',
         w=base_w,
-        lhotzone=5})  -- параметры для gate
+        lhotzone=5},i, "gate",lastCreatedButtonNumber)  -- параметры для gate
         createSlider(sliderGroups[4], {color='#7E7A3E',
         w=base_w,
         lhotzone=5,
         font='Times',
         min=0, 
         max=10,
-        value=0.1,
+        value=0.05,
         valign='down',
         text_color="#ffffff",
         halign='left',
         w=base_w,
         lhotzone=5,
-        rhotzone=5})  -- параметры для ratchet
+        rhotzone=5},i, "ratchet",lastCreatedButtonNumber)  -- параметры для ratchet
         createSlider(sliderGroups[5], {color='#009a86',
         w=base_w,
         lhotzone=5,
@@ -480,13 +537,19 @@ local function createNewBox()
         halign='left',
         w=base_w,
         lhotzone=5,
-        rhotzone=5})  -- параметры для rate
+        rhotzone=5},i, "rate",lastCreatedButtonNumber)  -- параметры для rate
     end
     return container_advanced_3
 end
 
 
+line_add.onclick = function()
 
+end
+
+local nextButtonIndex = 1  -- Следующий индекс для кнопки
+local buttons = {}  -- Список для хранения всех кнопок
+local currentButtonCount = 0
 
 
 chord_add.onclick = function()
@@ -494,24 +557,84 @@ chord_add.onclick = function()
     for _, box in pairs(boxes) do
         box:hide()
     end
-
-    local newButton = hibox_buttons_browser:add(rtk.Button{"chord" .. buttonCount})
-    local newBox = createNewBox()
-    boxes[buttonCount] = newBox
-
-    -- Показать только что созданный бокс
-    newBox:show()
-
-    newButton.onclick = function()
-        for _, box in pairs(boxes) do
-            box:hide()
-        end
-        newBox:show()
-    end
     
-    buttonCount = buttonCount + 1
-end
+    lastCreatedButtonNumber = lastCreatedButtonNumber + 1
+    currentButtonCount = currentButtonCount + 1
+    local newBox = createNewBox()
+    boxes[lastCreatedButtonNumber] = newBox
+    
+    local newButton = hibox_buttons_browser:add(rtk.Button{color=base_color, gradient=2, halign='center', spacing=4, padding=2, h=base_h_for_chord_tabs, w=base_w_for_chord_tabs, label="Chord " .. lastCreatedButtonNumber})
+    table.insert(buttons, newButton)  -- Добавляем новую кнопку в список
 
+    newBox:show()
+    
+    newButton.onclick = function(self, event)
+        if event.button == rtk.mouse.BUTTON_RIGHT then
+            local menu2 = rtk.NativeMenu()
+            menu2:set({
+                {"Delete", id='delete'}
+            })
+            menu2:open_at_mouse():done(function(item)
+                if item and item.id == 'delete' then
+                    hibox_buttons_browser:remove(newButton)
+                    win:remove(newBox)
+                    
+                    for i, btn in ipairs(buttons) do
+                        if btn == newButton then
+                            table.remove(buttons, i)
+                            table.remove(boxes, i)
+                            break
+                        end
+                    end
+
+                    currentButtonCount = currentButtonCount - 1
+
+                    -- Обновляем названия оставшихся кнопок
+                    for i, btn in ipairs(buttons) do
+                        btn:attr('label', "Chord " .. i)
+                    end
+                end
+            end)
+            
+        elseif event.button == rtk.mouse.BUTTON_LEFT then
+              for _, box in pairs(boxes) do
+                  box:hide()
+              end
+              for _, btn in pairs(buttons) do
+                  btn:animate{'color', dst=base_color, duration=0.1}
+                  btn:animate{'w', dst=base_w_for_chord_tabs, duration=0.3, easing="out-back"}
+                  btn:animate{'h', dst=base_h_for_chord_tabs, duration=0.3, easing="out-back"}
+                  btn:attr('gradient', 2)
+              end
+              
+              -- Показать только что созданный бокс и применить к нему анимацию
+              newBox:show()
+              newButton:animate{'color', dst=pressed_color_tabs, duration=0.1}
+              newButton:attr('gradient', 3)
+              newButton:animate{'w', dst=base_w_for_chord_tabs+20, duration=0.3, easing="out-quart"}
+              newButton:animate{'h', dst=base_h_for_chord_tabs+7, duration=0.3, easing="out-bounce"}
+              
+          end
+          
+          nextButtonIndex = nextButtonIndex + 1 
+        end
+              for _, box in pairs(boxes) do
+                  box:hide()
+              end
+              for _, btn in pairs(buttons) do
+                  btn:animate{'color', dst=base_color, duration=0.1}
+                  btn:animate{'w', dst=base_w_for_chord_tabs, duration=0.3, easing="out-back"}
+                  btn:animate{'h', dst=base_h_for_chord_tabs, duration=0.3, easing="out-back"}
+                  btn:attr('gradient', 2)
+              end
+              
+              -- Показать только что созданный бокс и применить к нему анимацию
+              newBox:show()
+              newButton:animate{'color', dst=pressed_color_tabs, duration=0.1}
+              newButton:attr('gradient', 3)
+              newButton:animate{'w', dst=base_w_for_chord_tabs+20, duration=0.3, easing="out-quart"}
+              newButton:animate{'h', dst=base_h_for_chord_tabs+7, duration=0.3, easing="out-bounce"}
+end
 
 
 --[[
