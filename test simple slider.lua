@@ -39,7 +39,6 @@ function SimpleSlider:set_from_mouse_y(y)
         duration = 0.0070
     }
 end
-
 function adjust_brightness(color, amount)
     local r, g, b = color:match("#(%x%x)(%x%x)(%x%x)")
     r = math.floor(math.min(255, math.max(0, tonumber(r, 16) * (1 + amount))))
@@ -116,21 +115,54 @@ function SimpleSlider:_handle_draw(offx, offy, alpha, event)
     self:setcolor(self.text_color)
     gfx.drawstr(text_to_display)
 end
+
+
+-- В функции SimpleSlider:getDisplayValue()
+function SimpleSlider:getDisplayValue()
+    local calc = self.calc
+    local text_to_display
+    if self.ticklabels then
+        local index = math.floor(calc.value * (#self.ticklabels - 1) + 0.5) + 1
+        text_to_display = self.ticklabels[index]
+    elseif type(self.min) == "table" and type(self.max) == "table" then
+        text_to_display = string.format("%d", math.floor(calc.value * 100))
+    else
+        local min = type(self.min) == "table" and self.min[1] or self.min
+        local max = type(self.max) == "table" and self.max[1] or self.max
+        text_to_display = string.format("%d", math.floor(min + calc.value * (max - min)))
+    end
+
+    -- Для rate: преобразуем доли в число и умножаем на 480*8
+    if self.name == "rate" then
+        local fractions = {["1/2"]=0.5, ["1/3"]=1/3, ["1/4"]=0.25, ["1/6"]=1/6, ["1/8"]=0.125, ["1/12"]=1/12, ["1/16"]=1/16, ["1/24"]=1/24, ["1/32"]=1/32, ["1/48"]=1/48, ["1/64"]=1/64}
+        local fraction_value = fractions[text_to_display]
+        if fraction_value then
+            text_to_display = tostring(math.floor(fraction_value * 480 * 8))
+        end
+    end
+
+    return text_to_display or "No Value!"
+end
+
+
+
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
 
 SliderGroup = rtk.class('SliderGroup', rtk.HBox)
-
+local step_grid = {}
 
 
 function SimpleSlider:_handle_mousedown(event)
+    
     local ok = rtk.Spacer._handle_mousedown(self, event)
     if ok == false then
+    all_info_sliders(self)
         return ok
     end
-
+    
     if event.button == rtk.mouse.BUTTON_RIGHT then
         local menu2 = rtk.NativeMenu()
         menu2:set({
@@ -149,8 +181,11 @@ function SimpleSlider:_handle_mousedown(event)
         end)
     else
         self:set_from_mouse_y(event.y)
+        
     end
+    
 end
+
 function SliderGroup:apply_mode(current_slider, mode)
     local total_sliders = #self.children
     local current_slider_idx
@@ -179,6 +214,7 @@ function SliderGroup:apply_mode(current_slider, mode)
                 }
             end
         end
+        all_info_sliders(self, children, event, x, y, t)
         return
     end
     for i, child in ipairs(self.children) do
@@ -207,8 +243,9 @@ function SliderGroup:apply_mode(current_slider, mode)
                 else
                     new_value = 0.1 + (0.8 * (current_slider_idx - i) / (current_slider_idx - 1))
                 end
+                
             end
-
+            all_info_sliders(self, children, event, x, y, t)
             slider:animate{
                 attr = 'value',
                 dst = new_value,
@@ -216,11 +253,15 @@ function SliderGroup:apply_mode(current_slider, mode)
             }
         end
     end
+    all_info_sliders(self, children, event, x, y, t)
+    
 end
-
 local first_slider_value = nil
 local focused_slider = nil
 
+function SliderGroup:_handle_mousedown(event, x, y, t)
+    all_info_sliders(self, event, x, y, t)
+end
 function SliderGroup:_handle_dragstart(event, x, y, t)
     first_slider_value = nil
     focused_slider = nil
@@ -231,12 +272,116 @@ function SliderGroup:_handle_dragstart(event, x, y, t)
     return {lastx=x, lasty=y}, false
 end
 
+
+--[[flag_mouse = false
+function SliderGroup:_handle_mousedown(event, x, y, t)
+    flag_mouse=true
+end]]
+
+
+
+
+local last_created_button_number = 0
+local buttonCount = 1
+local boxes = {}
+local container_advanced_3
+local index_strip = 8
+local next_button_index = 1 
+local buttons = {}  
+local boxes = {}
+
+-- Глобальная переменная-флаг для управления режимом defer
+local on_deferred = true
+
+
+
+function all_info_sliders(self, children, event, x, y, t)
+    -- Определите, в каком аккорде мы находимся
+    local chord_index = active_chord_index
+    
+    -- Если аккорда еще нет в step_grid, добавим его
+    if not step_grid[chord_index] then
+        step_grid[chord_index] = {mode = "down"}
+    end
+    
+    for i = 1, #self.children do
+        local child = self.children[i][1]
+        if rtk.isa(child, SimpleSlider) then
+            local step = child.slider_index
+    
+            -- Создадим слот для данного шага, если его еще нет
+            if not step_grid[chord_index][step] then
+                step_grid[chord_index][step] = {
+                    step = step,
+                    grid_step = 480,   -- Значение по умолчанию для grid_step
+                    velocity = 100,    -- Значение по умолчанию для velocity
+                    octave = 0,        -- Значение по умолчанию для octave
+                    ratchet = 0,       -- Значение по умолчанию для ratchet
+                    length = 0         -- Значение по умолчанию для length
+                }
+            end
+    
+            -- Записываем значения в step_grid
+            if child.name == "rate" then
+                step_grid[chord_index][step].grid_step = child:getDisplayValue()
+            elseif child.name == "velocity" then
+                step_grid[chord_index][step].velocity = child:getDisplayValue()
+            elseif child.name == "octave" then
+                step_grid[chord_index][step].octave = child:getDisplayValue()
+            elseif child.name == "ratchet" then
+                step_grid[chord_index][step].ratchet = child:getDisplayValue()
+            elseif child.name == "gate" then
+                step_grid[chord_index][step].length = child:getDisplayValue()
+            end
+        end
+    end
+
+    -- Проверяем значение переменной-флага перед вызовом reaper.defer
+    if on_deferred then
+        reaper.defer(function() all_info_sliders(self, children, event, x, y, t) end)
+    end
+end
+
+
+function SliderGroup:_handle_dragend(event, x, y, t)
+    all_info_sliders(self, event, x, y, t)
+end
+
+
+local function print_slider_info()
+    local msg = "Step Grid Info:\n"
+    for chord_idx, chord_data in ipairs(step_grid) do
+        msg = msg .. "Chord " .. chord_idx .. " (Mode: " .. chord_data.mode .. ")\n"
+        for step, step_data in ipairs(chord_data) do
+            if type(step_data) == "table" then
+                msg = msg .. "  Step " .. step .. ": "
+                for k, v in pairs(step_data) do
+                    if k ~= "step" then
+                        msg = msg .. k .. "=" .. tostring(v) .. ", "
+                    end
+                end
+                msg = msg:sub(1, -3)
+                msg = msg .. "\n"
+            end
+        end
+    end
+    reaper.ShowConsoleMsg(msg)
+end
+
+
+
+
+function SliderGroup:_handle_mouseup(event, x, y, t)
+    all_info_sliders(self, event, x, y, t)
+end
+
+
 function SliderGroup:_handle_dragmousemove(event, arg)
     local ok = rtk.HBox._handle_dragmousemove(self, event)
     if ok == false or event.simulated then
         return ok
     end
-
+    --show_info(self, event, arg, x, y, t)
     local x0 = math.min(arg.lastx, event.x)
     local x1 = math.max(arg.lastx, event.x)
 
@@ -263,29 +408,15 @@ function SliderGroup:_handle_dragmousemove(event, arg)
     end
     arg.lastx = event.x
     arg.lasty = event.y
+    all_info_sliders(self, event, x, y, t)
 end
+    
 
-
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
-local step_grid = {
-  { -- 1 chord
-    mode = "down",
-    {step = 1, grid_step = 480, velocity = 20, octave = -2, ratchet = 2, length = 100},
-    {step = 2, grid_step = 120, velocity = 50, octave = -1, ratchet = 0, length = 100},
-    {step = 3, grid_step = 240, velocity = 70, octave = 1, ratchet = 6, length = 100},
-    {step = 4, grid_step = 960, velocity = 110, octave = 2, ratchet = 1, length = 100},
-  },
-  { -- 2 chord
-    mode = "up",
-    {step = 1, grid_step = 960, velocity = 25, octave = 0, ratchet = 0, length = 55},
-    {step = 2, grid_step = 240, velocity = 35, octave = 1, ratchet = 0, length = 70},
-    {step = 3, grid_step = 480, velocity = 45, octave = -1, ratchet = 0, length = 40},
-    {step = 4, grid_step = 240, velocity = 65, octave = 0, ratchet = 0, length = 25},
-  },
-}
+--local step_grid = {}
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------
@@ -301,20 +432,23 @@ base_h_for_chord_tabs=25
 base_color = "#3a3a3a"
 pressed_color_tabs = "#08737f"
 
+
 local win = rtk.Window{bg="#1a1a1a",w=450, h=340}
 
 
 
+
+
+
+
 local hibox_buttons_browser=win:add(rtk.HBox{})
-local last_created_button_number = 0
-local buttonCount = 1
-local boxes = {}
-local container_advanced_3
-local index_strip = 8
+
 local function create_new_box()
-    local container_advanced_3 = win:add(rtk.HBox{padding=20})
+
+    local container_advanced_3 = all_advanced_mode_container:add(rtk.HBox{padding=20})
     local vbox = container_advanced_3:add(rtk.VBox{x=15, w=base_w, h=200, padding=25})
     local slider_groups = {}
+    
     local button_names = {'velocity', 'octave', 'gate', 'ratchet', 'rate'}
     
     local slider_and_buttons_modes = container_advanced_3:add(rtk.VBox{})
@@ -328,8 +462,7 @@ local function create_new_box()
         ratchet = {color='#7E7A3E', min=0, max=10, value=0.05},
         rate = {color='#009a86', min=1, max=12, ticklabels={"1/2", "1/3", "1/4", "1/6", "1/8", "1/12", "1/16", "1/24", "1/32", "1/48", "1/64"}, value=0.5}
     }
-
-    local function create_slider(group, params, name)
+    local function create_slider(group, params, name, chord_number, slider_type)
         params.w = base_w
         params.lhotzone = 5
         params.font = 'Times'
@@ -337,9 +470,31 @@ local function create_new_box()
         params.text_color = "#ffffff"
         params.halign = 'left'
         params.rhotzone = 5
-        return group:add(SimpleSlider(params), {fillw=true})
+        params.name = name  -- Добавьте поле name
+        local slider_line_v = group:add(SimpleSlider(params), {fillw=true})
+        return slider_line_v
     end
-
+    
+    --[[
+    local function create_slider(group, params, name, chord_number, slider_type)
+        params.w = base_w
+        params.lhotzone = 5
+        params.font = 'Times'
+        params.valign = 'down'
+        params.text_color = "#ffffff"
+        params.halign = 'left'
+        params.rhotzone = 5
+        local slider_line_v = group:add(SimpleSlider(params), {fillw=true})
+        
+        slider_line_v.onclick=function(self, event)
+                local displayValue = slider_line_v:getDisplayValue()
+               reaper.ShowConsoleMsg(slider_line_v. )
+           end
+           return  slider_line_v
+    end]]
+    
+    
+    
     local function toggle_groups(active_index)
         for i, group in ipairs(slider_groups) do
             if i == active_index then
@@ -364,6 +519,9 @@ local function create_new_box()
 
     for i, name in ipairs(button_names) do
         local slider_group = vbox:add(SliderGroup{spacing=spacing_1, expand=2})
+        
+        
+        
         slider_group:hide()
         table.insert(slider_groups, slider_group)
 
@@ -387,8 +545,11 @@ local function create_new_box()
         end)(i)
 
         for j = 1, index_strip do
-            create_slider(slider_group, slider_params[name], name)
+            local slider = create_slider(slider_group, slider_params[name], name)
+            slider.chord_index = last_created_button_number
+            slider.slider_index = j   -- Сохраняем порядковый номер слайдера
         end
+        
     end
 
     slider_mode_win.onchange = function(self, event)
@@ -402,7 +563,7 @@ local function create_new_box()
     end
     
     slider_groups[1]:show()
-    return container_advanced_3
+    return container_advanced_3, slider_groups, button_names
 end
 
 --------------------------------------------------------------------------------------------------------
@@ -411,10 +572,6 @@ end
 --------------------------------------------------------------------------------------------------------
 
 local chord_add = hibox_buttons_browser:add(rtk.Button{"+"})
-local next_button_index = 1 
-local buttons = {}  
-local boxes = {}
-
 local function animate_button(btn, color, w, h, gradient)
     btn:animate{'color', dst=color, duration=0.1}
     btn:animate{'w', dst=w, duration=0.3, easing="out-back"}
@@ -438,7 +595,9 @@ local function update_labels()
 end
 
 local function create_new_button_and_box(last_created_button_number)
-    local new_box = create_new_box()
+    local new_box, slider_groups, button_names = create_new_box()
+    new_box.slider_groups = slider_groups
+    new_box.button_names = button_names
     boxes[last_created_button_number] = new_box
     local new_button = hibox_buttons_browser:add(rtk.Button{
         color=base_color,
@@ -454,7 +613,9 @@ local function create_new_button_and_box(last_created_button_number)
     new_box:show()
 
     new_button.onclick = function(self, event)
+        
         local handle_right_click = function()
+            
             local menu2 = rtk.NativeMenu()
             menu2:set({{"Delete", id='delete'}})
             menu2:open_at_mouse():done(function(item)
@@ -485,15 +646,68 @@ local function create_new_button_and_box(last_created_button_number)
             handle_left_click()
         end
         next_button_index = next_button_index + 1
+        active_chord_index = last_created_button_number
     end
     animate_button(new_button, pressed_color_tabs, base_w_for_chord_tabs+20, base_h_for_chord_tabs+7, 3)
     update_labels()
+    active_chord_index = last_created_button_number
 end
 chord_add.onclick = function()
     hide_all_boxes_and_reset_buttons()
     local last_created_button_number = #buttons + 1
     create_new_button_and_box(last_created_button_number)
 end
+
+--[[
+local function collect_slider_info()
+    local step_grid = {}
+    for _, box in ipairs(boxes) do
+        local chord_data = {mode = "down"} 
+        for group_idx, slider_group in ipairs(box.slider_groups) do
+            local group_name = box.button_names[group_idx]
+            for step, slider in ipairs(slider_group.children) do
+                if not chord_data[step] then
+                    chord_data[step] = {step = step}
+                end
+                local value = "No Value!"
+                if slider and slider.getDisplayValue then
+                    value = slider:getDisplayValue()
+                end
+                chord_data[step][group_name] = value
+            end
+        end
+        table.insert(step_grid, chord_data)
+    end
+    return step_grid
+end
+
+local function print_slider_info()
+    local step_grid = collect_slider_info()
+    local msg = "Step Grid Info:\n"
+    for chord_idx, chord_data in ipairs(step_grid) do
+        msg = msg .. "Chord " .. chord_idx .. " (Mode: " .. chord_data.mode .. ")\n"
+        for step, step_data in ipairs(chord_data) do
+            msg = msg .. "  Step " .. step .. ": "
+            for k, v in pairs(step_data) do
+                if k ~= "step" then
+                    msg = msg .. k .. "=" .. tostring(v) .. ", "
+                end
+            end
+            msg = msg:sub(1, -3) 
+            msg = msg .. "\n"
+        end
+    end
+    reaper.ShowConsoleMsg(msg)
+end]]
+
+
+
+local baaaatooon=win:add(rtk.Button{y=300,"x"})
+
+baaaatooon.onclick = function()
+    print_slider_info()
+end
+
 win:open()
 
 
