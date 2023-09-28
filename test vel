@@ -1,70 +1,231 @@
 package.path = string.format('%s/Scripts/rtk/1/?.lua;%s?.lua;', reaper.GetResourcePath(), entrypath)
 require 'rtk'
+local resourcePath = reaper.GetResourcePath()
+initialW=195
+initialH=400
+local scale_2
+main_background_color = "#1a1a1a"
 local wnd = rtk.Window{
-    w = 480,
-    h = 280,
-    title = 'multi-k',
+    w = initialW,
+    h = initialH,
+    title = 'vt',
+    bg = main_background_color,
+    resizable=true,
+    opacity=0.98
+    
 }
 wnd:open()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-local line = wnd:add(rtk.HBox{})
-local vert_box_c1 = line:add(rtk.VBox{y=20})
-local vert_box_c2 = line:add(rtk.VBox{y=20})
-
-
-local shelf_1 = vert_box_c1:add(rtk.HBox{x=25})
-local shelf_2 = vert_box_c1:add(rtk.HBox{y=15})
-
-local shelf_3 = vert_box_c2:add(rtk.HBox{x=25})
-local shelf_4 = vert_box_c2:add(rtk.VBox{spacing=10,padding=10,border='gray',y=27})
-
-
-
-
-
-local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
-local _, noteCount = reaper.MIDI_CountEvts(take)
-
-
-
-function modifyVelocity(take, noteIdx, targetVel)
-  targetVel = math.floor(targetVel + 0.5)
-  local _, selected, muted, startppqpos, endppqpos, chan, pitch, vel = reaper.MIDI_GetNote(take, noteIdx)
-  if vel < targetVel then
-    vel = vel + 10
-    if vel > targetVel then vel = targetVel end
-  elseif vel > targetVel then
-    vel = vel - 10
-    if vel < targetVel then vel = targetVel end
-  end
-  if vel > 127 then
-    vel = 127
-  elseif vel < 1 then
-    vel = 1
-  end
-  reaper.MIDI_SetNote(take, noteIdx, selected, muted, startppqpos, endppqpos, chan, pitch, vel, false)
+wnd.onresize=function(self, w, h)
+    -- Масштабируем, основываясь на начальных размерах
+    scale_2 = math.min(w / initialW, h / initialH)
+    rtk.scale.user = scale_2
+    self:reflow()
 end
 
+
+
+
+
+base_w_sliders=150
+rand_color_slider="#36231f"
+range_color_slider="#3e1718"
+
+step_color_slider=1
+steps_more_color_slider=2
+font = Verdana
+vertical_step_slider_colors=3
+tracksizex = 14
+base_font=Arial
+base_b_color="#6c848c50"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+local line = wnd:add(rtk.VBox{spacing=10,y=30,padding=10})
+
+
+-- Создаём вертикальный контейнер для первой линии
+local vert_box_c1 = line:add(rtk.VBox{bg="#FFDAB96",border='#70809019'})
+
+local vert_box_c2 = line:add(rtk.VBox{bg="#FFDAB96",border='#70809019'})
+local vert_box_c3 = line:add(rtk.VBox{})
+
+
+spacing_value = 5
+local shelf_1 = vert_box_c1:add(rtk.VBox{padding=10,spacing=spacing_value})
+
+
+
+
+local shelf_2_2 = vert_box_c1:add(rtk.HBox{padding=10,spacing=spacing_value})
+local shelf_2_3 = vert_box_c1:add(rtk.HBox{padding=10,spacing=spacing_value})
+
+local shelf_3 = vert_box_c2:add(rtk.VBox{padding=10,spacing=1})
+local shelf_comp_exp_txt = shelf_3:add(rtk.HBox{x=4,padding=10,spacing=18})
+local shelf_comp_exp = shelf_3:add(rtk.HBox{})
+local shelf_buttons = shelf_3:add(rtk.HBox{padding=10,spacing=10})
+
+
+
+local shelf_3_3 = vert_box_c2:add(rtk.HBox{padding=10,spacing=spacing_value})
+
+
+local slider_gr = shelf_3:add(rtk.Slider{
+    value = 0,
+    w = base_w_sliders,
+    tooltip = 'Грув',
+    thumbsize = 6,
+    tracksize = tracksizex,
+    trackcolor = '#b7b1b7',
+    thumbcolor = 'transparent',
+    color = '#48D1CC',
+    ticks = false,
+})
+slider_gr:hide()
+button_remove_sliders = shelf_3_3:add(rtk.Button{"-"})
+button_add_sliders =shelf_3_3:add(rtk.Button{"+"})
+shelf_3_3:hide()
+
+-- Добавляем текст "RANDOMIZE" и слайдер под ним
+local txt_rand = shelf_1:add(rtk.Text{x=33,padding=5,'RANDOMIZE'})
+local slider22 = shelf_1:add(rtk.Slider{
+    value = 0,
+    w = base_w_sliders,
+    tooltip = 'ранд',
+    thumbsize = 6,
+    tracksize = tracksizex,
+    trackcolor = '#b7b1b7',
+    thumbcolor='transparent',
+    color = rand_color_slider,
+    ticks = false
+})
+local txt_rang = shelf_1:add(rtk.Text{font=font,x=49,padding=5,'RANGE'})
+local shelf_1_1 = shelf_1:add(rtk.HBox{x=-1,spacing=1})
+local min = shelf_1_1:add(rtk.Text{x=5, y=-2, z=1, '25', w=24})
+local slider_range = shelf_1_1:add(rtk.Slider{
+    value={10, 120},
+    min=1,
+    max=127,
+    step=1,
+    w = base_w_sliders - 50,
+    thumbsize = 6,
+    tracksize = tracksizex,
+    trackcolor = '#b7b1b7',
+    thumbcolor='transparent',
+    tooltip='ранг',
+    color = range_color_slider,
+    ticks = false
+})
+local max = shelf_1_1:add(rtk.Text{font=font,y=-2,'120', w=24})
+
+btn_box_h=shelf_1:add(rtk.HBox{y=10,})
+local buttonchik = btn_box_h:add(rtk.Button{
+    color = base_b_color,
+    font = base_font,
+    halign = 'center',
+    padding = 2,
+    w = base_w_sliders,
+    'UPDATE',
+    
+ 
+})
+
+
+local label_slider_expand = shelf_comp_exp_txt:add(rtk.Text{'Expand'})
+local label_slider_compress = shelf_comp_exp_txt:add(rtk.Text{'Compress'})
+local slider_reduce = shelf_comp_exp:add(rtk.Slider{
+    value = 50.01,
+    w = base_w_sliders,
+    tooltip = 'expand',
+    thumbsize = 10,
+    tracksize = tracksizex,
+    trackcolor = '#b7b1b7',
+    thumbcolor = '#422315',
+    color = 'transparent',
+    ticks = false,
+})
+local target_button_factor=shelf_buttons:add(rtk.Button{padding=4,tpadding=2,font=font,halign='center','FACTOR',w=60})
+local target_button_target=shelf_buttons:add(rtk.Button{padding=4,tpadding=2,font=font,halign='center','TARGET',w=60})
+
+
+
+local dragging = false
+local currentValue = 80
+local prevY = nil
+local dragAccumulatorY = 5
+local dragThreshold = 0.1
+local sensitivity = 5 -- усиление движения
+local targetExpandValues = {80}
+
+target_button_target.ondragstart = function(self, event, x, y, t)
+    dragging = true
+    prevY = y
+    self:attr("cursor", rtk.mouse.cursors.REAPER_MARKER_VERT)
+    return true
+end
+
+target_button_target.ondragend = function(self, event, dragarg)
+    dragging = false
+    prevY = nil
+    self:attr("cursor", rtk.mouse.cursors.UNDEFINED)
+    targetExpandValues = {currentValue}  -- Обновляем массив при завершении перетаскивания
+    slider_reduce:onchange()
+end
+
+target_button_target.onmousewheel = function(self, event)
+    local _, _, _, wheel_y = tostring(event):find("wheel=(%d+.?%d*),(-?%d+.?%d*)")
+    wheel_y = tonumber(wheel_y)
+    currentValue = math.max(1, math.min(127, currentValue - wheel_y * sensitivity))  -- инвертировано
+    self:attr('label', tostring(math.floor(currentValue)))  -- Убрана десятичная часть
+    targetExpandValues = {currentValue}  -- Обновляем массив
+    slider_reduce:onchange()
+    return true
+end
+
+target_button_target.ondragmousemove = function(self, event, dragarg)
+    if dragging and prevY then
+        local deltaY = event.y - prevY
+        dragAccumulatorY = dragAccumulatorY + deltaY
+        if math.abs(dragAccumulatorY) > dragThreshold then
+            currentValue = math.max(1, math.min(127, currentValue - math.floor(dragAccumulatorY / sensitivity)))
+            self:attr('label', tostring(math.floor(currentValue)))  -- Убрана десятичная часть
+            prevY = event.y
+            dragAccumulatorY = 0
+        end
+    end
+    slider_reduce:onchange()
+end
+
+
+
+
+
+slider_reduce.onmousedown = function(self, event)
+    self:attr('thumbsize', 9)
+    return true
+end
+slider_reduce.onmouseup = function(self, event)
+    self:attr('thumbsize', 10)
+end
+
+local midiEditor = reaper.MIDIEditor_GetActive()
+if not midiEditor then return reaper.MB("No active MIDI Editor found", "Error", 0) end
+local take = reaper.MIDIEditor_GetTake(midiEditor)
+if not take then return reaper.MB("No take found in MIDI Editor", "Error", 0) end
+local _, noteCount = reaper.MIDI_CountEvts(take)
+local notesTable = {}
 
 function storeInitialVelocities(take, noteCount)
     local velocities = {}
@@ -74,106 +235,51 @@ function storeInitialVelocities(take, noteCount)
     end
     return velocities
 end
+local initialVelocities = {}
+local initialVelocities = storeInitialVelocities(take, noteCount)
 
-local initialVelocities = {} -- Таблица для исходных значений velocity
-local baseTargetVels = {80, 60, 100, 40}
-local targetVels =  {80, 60, 100, 40}
-local tracksizex = 18
-local initialVelocities = storeInitialVelocities(take, noteCount) 
-local targetVelocity = {}
-local modifiedVelocities = {}
+local targetVelocitiesArray = {30, 60, 90, 120, 90, 60, 30, 1}  -- Пример массива
 
-
-
-local slider_gr = shelf_3:add(rtk.Slider{value = 0, w = 180,
-tooltip = 'Грув', thumbsize = 6, tracksize = tracksizex,
-trackcolor = '#b7b1b7', thumbcolor='transparent',color = '#48D1CC',  ticks = false})
-
-slider_gr.onchange = function(self)
-  local take = reaper.MIDIEditor_GetTake(reaper.MIDIEditor_GetActive())
-  local _, noteCount = reaper.MIDI_CountEvts(take)
-  local selectedNoteCount = reaper.MIDI_EnumSelNotes(take, -1)
-  for i = 0, noteCount - 1 do
-    local _, selected, _, _, _, _, _, _ = reaper.MIDI_GetNote(take, i)
-    if selected or selectedNoteCount == -1 then
-      -- Используем количество элементов в targetVels для определения типа ноты
-      local noteType = (i % #targetVels) + 1
-      local initialVel = initialVelocities[i + 1]
-      if initialVel then
-        local targetVel = targetVels[noteType]
-        local newVel = initialVel + (targetVel - initialVel) * (self.value / 100)
-        if self.value == 0 then newVel = initialVel end
-        modifyVelocity(take, i, newVel)
-        update_velocity_all()
-      end
+local function updateTargetVelocitiesFromArray()
+    for i, note in pairs(notesTable) do
+        local arrayIdx = (i % #targetVelocitiesArray) + 1
+        note.targetVelocity = targetVelocitiesArray[arrayIdx]
     end
-  end
 end
 
-slider_steps_add = shelf_4:add(rtk.Slider{
-    value = 4, 
-    w = 180,
-    min = 1,
-    max = 8,
-    tooltip = 'Грув',
-    thumbsize = 6,
-    tracksize = tracksizex,
-    trackcolor = '#b7b1b7',
-    thumbcolor='transparent',
-    color = '#48D1CC',
-    ticks = true,
-    step=1,
-})
-
-local mini_sliders_box = shelf_4:add(rtk.HBox{})
-local slider_line_box = mini_sliders_box:add(rtk.VBox{spacing = -5})
-local mini_sliders = {}
-local mini_sliders_values = {}
-local mini_sliders_texts = {}
+-- Хранит исходные значения скорости нот при запуске
+local baseInitialVelocities = storeInitialVelocities(take, noteCount)
+local currentBaseVelocities = storeInitialVelocities(take, noteCount)
 
 
--- Добавляем переменную для хранения предыдущего значения
 
-function update_slider_steps(self, event)
-    if self.value == previous_value then return end
-    local step = self.value - slider_steps_add.min + 1
-    
-    -- Удаляем предыдущие мини-слайдеры и сохраняем их значения
-    for i, mini_slider in ipairs(mini_sliders) do
-        mini_sliders_values[i] = mini_slider.value
-        slider_line_box:remove(mini_slider)
-        slider_line_box:remove(mini_sliders_texts[i])
+slider_gr.onchange = function(self)
+    local sliderValue = self.value
+    local anySelected = false
+    -- Проверяем, есть ли выбранные ноты
+    for _, note in pairs(notesTable) do
+        local _, selected = reaper.MIDI_GetNote(take, note.idx)
+        anySelected = anySelected or selected
     end
-    
-    -- Очищаем таблицу мини-слайдеров и текстовых виджетов
-    mini_sliders = {}
-    mini_sliders_texts = {}
-    
-    -- Создаем новые мини-слайдеры и текстовые виджеты для них
-    for i = 1, step do
-        local mini_slider_value = mini_sliders_values[i] or baseTargetVels[i]
-        local values_txt = slider_line_box:add(rtk.Text{z=1,y=15,x=2,tostring(mini_slider_value)})
-        local mini_slider = slider_line_box:add(rtk.Slider{thumbsize=1,min=0,max=127,step=1,thumbcolor='transparent',tracksize=20,w=170, value=mini_slider_value or 100})
-        
-        table.insert(mini_sliders, mini_slider)
-        table.insert(mini_sliders_texts, values_txt)
-        
-        -- Обновляем текстовый виджет и массивы при каждом изменении слайдера
-        mini_slider.onchange = function(self, event)
-            values_txt:attr('text', tostring(self.value))
-            baseTargetVels[i] = self.value
-            targetVels[i] = self.value
-            slider_gr:onchange()
+
+    for i, note in pairs(notesTable) do
+        local _, selected = reaper.MIDI_GetNote(take, note.idx)
+        local baseInitialVelocity = baseInitialVelocities[i + 1]  -- Исходная скорость при запуске
+        local arrayIdx = (i % #targetVelocitiesArray) + 1
+
+        if selected or not anySelected then
+            local newVelocity = baseInitialVelocity + (targetVelocitiesArray[arrayIdx] - baseInitialVelocity) * (sliderValue / 100)
+            newVelocity = math.floor(math.max(1, math.min(127, newVelocity)))
+
+            reaper.MIDI_SetNote(take, note.idx, nil, note.muted, note.startppq, note.endppq, note.chan, note.pitch, newVelocity, false)
+            note.velocity = newVelocity
+            note.initialVelocity = newVelocity  -- Убираем эту строку
+            currentBaseVelocities[i + 1] = newVelocity
         end
     end
     
-    previous_value = self.value
-end
-local previous_value = slider_steps_add.value
-update_slider_steps(slider_steps_add)
-
-slider_steps_add.onchange = function(self, event)
-    update_slider_steps(self, event)
+    reaper.MIDIEditor_OnCommand(midiEditor, 40237)
+    reaper.MIDI_Sort(take)
 end
 
 
@@ -182,6 +288,65 @@ end
 
 
 
+
+local expandFactor = 2  -- Усиление эффекта разжатия
+
+slider_reduce.onchange = function(self)
+    local sliderValue = self.value
+    local velocityRange = slider_range.value
+    local anySelected = false
+    -- Проверяем, есть ли выбранные ноты
+    for _, note in pairs(notesTable) do
+        local _, selected = reaper.MIDI_GetNote(take, note.idx)
+        anySelected = anySelected or selected
+    end
+
+    for i, note in pairs(notesTable) do
+        local _, selected = reaper.MIDI_GetNote(take, note.idx)
+        local baseInitialVelocity = baseInitialVelocities[i + 1]
+
+        if selected or not anySelected then
+            local closestTarget = currentValue  
+
+            -- Находим ближайшую целевую скорость, если установлено два значения
+            if #targetExpandValues == 2 then
+                closestTarget = math.abs(targetExpandValues[1] - baseInitialVelocity) < math.abs(targetExpandValues[2] - baseInitialVelocity) and targetExpandValues[1] or targetExpandValues[2]
+            end
+
+            local newVelocity = baseInitialVelocity
+            if sliderValue > 50 then
+                -- Работаем как slider_expand
+                newVelocity = baseInitialVelocity + (closestTarget - baseInitialVelocity) * ((sliderValue - 50) / 50)
+            elseif sliderValue < 50 then
+                -- Работаем как slider_reduce
+                newVelocity = baseInitialVelocity - expandFactor * (closestTarget - baseInitialVelocity) * ((50 - sliderValue) / 50)
+            end
+
+            newVelocity = math.floor(math.max(velocityRange[1], math.min(velocityRange[2], newVelocity)))
+            
+            reaper.MIDI_SetNote(take, note.idx, nil, note.muted, note.startppq, note.endppq, note.chan, note.pitch, newVelocity, false)
+            note.velocity = newVelocity
+        end
+    end
+    if self.value > 50 then
+        label_slider_expand:attr('color', 'white')
+        label_slider_compress:attr('color', 'orange')
+        target_button_target:attr('border', 'orange')
+        target_button_factor:attr('border', false)
+        
+    else
+        label_slider_expand:attr('color', 'orange')
+        label_slider_compress:attr('color', 'white')
+        target_button_target:attr('border', false)
+        target_button_factor:attr('border', 'orange')
+    end
+    reaper.MIDIEditor_OnCommand(midiEditor, 40237)
+    reaper.MIDI_Sort(take)
+end
+
+
+
+updateTargetVelocitiesFromArray()
 
 
 
@@ -196,50 +361,26 @@ local function processNotes()
     if not targetVelocity[i] then
       targetVelocity[i] = math.random(velocityMin, velocityMax)
     end
-
     if buttonchik.pressed then
       local newVelocity = vel + math.random(2, 6) * (targetVelocity[i] < vel and -1 or 1)
       newVelocity = math.max(1, math.min(127, newVelocity))
       reaper.MIDI_SetNote(take, i, nil, nil, startppq, endppq, chan, pitch, newVelocity, false)
     end
-    
     minVelocity = math.min(minVelocity, targetVelocity[i])
     maxVelocity = math.max(maxVelocity, targetVelocity[i])
   end
-
   reaper.MIDI_Sort(take)
-
   slider_range:attr('value', {minVelocity, maxVelocity})
   min:attr('text', minVelocity)
   max:attr('text', maxVelocity)
 end
-
-
-local slider22 = shelf_1:add(rtk.Slider{value = 0, w = 180,
-tooltip = 'ранд', thumbsize = 6, tracksize = tracksizex,
-trackcolor = '#b7b1b7', thumbcolor='transparent',color = 'green',  ticks = false})
-
-local buttonchik = shelf_1:add(rtk.Button{'hey'})
-
-local min = shelf_2:add(rtk.Text{'25', w=25})
-local slider_range = shelf_2:add(rtk.Slider{
-  value={10, 120}, min=0, max=127, step=1, w = 180,
-  thumbsize = 6, tracksize = tracksizex,
-  trackcolor = '#b7b1b7', thumbcolor='transparent',tooltip='ранг', color = '#48D1CC', ticks = false
-})
-
-local max = shelf_2:add(rtk.Text{'120', w=25})
-
-
-
-local midiEditor = reaper.MIDIEditor_GetActive()
-if not midiEditor then return reaper.MB("No active MIDI Editor found", "Error", 0) end
-
-local take = reaper.MIDIEditor_GetTake(midiEditor)
-if not take then return reaper.MB("No take found in MIDI Editor", "Error", 0) end
-
-local _, noteCount = reaper.MIDI_CountEvts(take)
-local notesTable = {}
+ local function updateBaseInitialVelocities()
+     for i, note in pairs(notesTable) do
+         local _, _, _, _, _, _, _, vel = reaper.MIDI_GetNote(take, i)
+         baseInitialVelocities[i + 1] = vel
+     end
+ end
+ 
 function update_velocity_all()
     for i = 0, noteCount - 1 do
       local _, _, muted, startppq, endppq, chan, pitch, vel = reaper.MIDI_GetNote(take, i)
@@ -253,49 +394,39 @@ local function moveVelocity()
   local velocityRange = slider_range.value
   local anySelected = false
   for _, note in pairs(notesTable) do
-    local _, selected = reaper.MIDI_GetNote(take, note.idx) -- Проверяем, выделена ли нота
+    local _, selected = reaper.MIDI_GetNote(take, note.idx)
     anySelected = anySelected or selected
   end
-
   for i, note in pairs(notesTable) do
-    local _, selected = reaper.MIDI_GetNote(take, note.idx) -- Проверяем, выделена ли нота
-    if selected or not anySelected then -- Если ни одна нота не выделена, влияем на все ноты
+    local _, selected = reaper.MIDI_GetNote(take, note.idx) 
+    if selected or not anySelected then
       local currentVelocity = note.velocity
       local targetVelocity = note.targetVelocity
       local initialVelocity = note.initialVelocity
-
-      -- Вычисляем новую величину velocity на основе линейной интерполяции между исходной и целевой, учитывая диапазон из slider_range
       local newVelocity = initialVelocity + (targetVelocity - initialVelocity) * (sliderValue / 100)
-      
       newVelocity = math.floor(math.max(velocityRange[1], math.min(velocityRange[2], newVelocity)))
       reaper.MIDI_SetNote(take, note.idx, nil, note.muted, note.startppq, note.endppq, note.chan, note.pitch, newVelocity, false)
       note.velocity = newVelocity
       initialVelocities[i + 1] = newVelocity
+      currentBaseVelocities[i + 1] = newVelocity
     end
   end
-  
+  reaper.MIDIEditor_OnCommand(midi_editor, 40237)
   reaper.MIDI_Sort(take)
 end
-
-
 local function randomizeTargetVelocities()
   local velocityMin, velocityMax = slider_range.value[1], slider_range.value[2]
   for i, note in pairs(notesTable) do
     note.targetVelocity = math.random(velocityMin, velocityMax)
   end
 end
-
-
 local function deferFunction()
-
-  
   local _, currentNoteCount = reaper.MIDI_CountEvts(take)
   if currentNoteCount ~= noteCount then
     noteCount = currentNoteCount
     notesTable = {}
-    initialVelocities = storeInitialVelocities(take, noteCount) -- Обновляем начальные скорости
+    initialVelocities = storeInitialVelocities(take, noteCount) 
   end
-
   for i = 0, noteCount - 1 do
     local _, selected, muted, startppq, endppq, chan, pitch, vel = reaper.MIDI_GetNote(take, i)
     if notesTable[i] then
@@ -308,24 +439,28 @@ local function deferFunction()
       notesTable[i] = {idx = i, selected = selected, muted = muted, startppq = startppq, endppq = endppq, chan = chan, pitch = pitch, velocity = vel, targetVelocity = targetVelocity, initialVelocity = vel}
     end
   end
-  --initialVelocities = storeInitialVelocities(take, noteCount) -- Обновляем начальные скорости
+  if currentNoteCount ~= noteCount then
+      for i, note in pairs(notesTable) do
+          local _, _, _, _, _, _, _, vel = reaper.MIDI_GetNote(take, i)
+          note.initialVelocity = vel
+      end
+  end
   reaper.defer(deferFunction)
 end
-
 deferFunction()
-
 buttonchik.onclick = function()
-  randomizeTargetVelocities() -- Рандомизируем целевые значения velocity для всех нот при нажатии кнопки
-  moveVelocity() -- Обновляем velocity нот в соответствии с новыми целевыми значениями
-  --update_velocity_all()
+  randomizeTargetVelocities() 
+  moveVelocity() 
+  
 end
-
+slider22.onchange = function(self)
+    moveVelocity()
+    updateBaseInitialVelocities()
+end
 
 slider_range.onchange = function(self)
     min:attr('text', self.value[1])
     max:attr('text', self.value[2])
-    moveVelocity() -- обновляем velocity нот в соответствии с новым диапазоном
-end
-slider22.onchange = function(self)
     moveVelocity()
+    updateBaseInitialVelocities()
 end
