@@ -68,7 +68,7 @@ end
 
 local grid = 3840 --размер основных нот
 
-local mode = "down_up" --направление
+local mode = "down" --направление
 local grid_step = 240 --размер для шага step
 local step = 3 --шаг для отклонения grid_step, каждая step нота будет иметь длину grid_step
 local octave = 0 --взрыв октав
@@ -997,11 +997,12 @@ local function create_new_box()
         return slider_line_v
     end
     
-    local function add_slider_to_group(group, params, name)
+    local function add_slider_to_group(group, params, name, j) 
         local slider = create_slider(group, params, name)
         slider.chord_index = last_created_button_number
-        slider.slider_index = #group.children + 1   -- Сохраняем порядковый номер слайдера
+        slider.slider_index = j 
     end
+    
     local function toggle_groups(active_index)
         for i, group in ipairs(slider_groups) do
             if i == active_index then
@@ -1039,7 +1040,7 @@ local function create_new_box()
         end)(i)
 
         for j = 1, index_strip do
-            add_slider_to_group(slider_group, slider_params[name], name)
+            add_slider_to_group(slider_group, slider_params[name], name, j)  -- добавлен параметр j
         end
         table.insert(buttons2, buttons_type)
         table.insert(slider_colors, slider_params[name].color)
@@ -1123,7 +1124,7 @@ local function create_new_button_and_box(last_created_button_number)
                             table.remove(buttons, i)
                             table.remove(boxes, i)
                             removeChordFromStepGrid(i) 
-                            ctive_chord_index = 1  -- Обновляем active_chord_index
+                            active_chord_index = 1  -- Обновляем active_chord_index
                             break
                         end
                     end
@@ -1867,35 +1868,13 @@ local function splitNote(take, start, endpos, pitch, vel, ratchet)
 end
 
 local function sortChord(chord, current_mode)
-  if current_mode == "up_down" or current_mode == "down_up" then
-    -- Создаем новый массив, в котором каждая нота встречается дважды
-    local doubledChord = {}
-    for i, note in ipairs(chord) do
-      table.insert(doubledChord, note)
-      table.insert(doubledChord, note)
-    end
-
-    -- Заменяем старый аккорд новым
-    chord = doubledChord
-  end
-
   table.sort(chord, function(a, b)
-    if current_mode == "up" or current_mode == "up_down" then
+    if current_mode == "up" then
       return a.pitch < b.pitch
     else
       return a.pitch > b.pitch
     end
   end)
-
-  if current_mode == "up_down" or current_mode == "down_up" then
-    for i = 2, #chord, 2 do
-      local temp = chord[i]
-      chord[i] = chord[i + 1]
-      chord[i + 1] = temp
-    end
-  end
-
-  return chord  -- Возвращаем измененный аккорд
 end
 
 local function createArpeggio(direction, g_length, alternateStep, alternateLength)
